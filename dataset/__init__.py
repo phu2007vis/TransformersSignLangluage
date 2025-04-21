@@ -17,7 +17,7 @@ from torchvision.transforms import (
 )
 
 import pytorchvideo
-from dataset_phuoc import labeled_video_dataset
+from dataset.utils import labeled_video_dataset
 
 def get_dataset(dataset_root_path,
                    model,

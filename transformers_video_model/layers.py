@@ -1,7 +1,9 @@
-from catalog import VideoMAEConfig,nn,torch,VideoMAEOutput
+from catalog import VideoMAEConfig
 from transformers.models.videomae.modeling_videomae import VideoMAEAttention
 from transformers.activations import ACT2FN
 from typing import Optional,Tuple,Union
+import torch
+from torch import nn
 
 # Copied from transformers.models.vit.modeling_vit.ViTSelfOutput with ViT->VideoMAE
 class VideoMAESelfOutput(nn.Module):
