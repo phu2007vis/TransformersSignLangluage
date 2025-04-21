@@ -1,22 +1,35 @@
 import fire
-from transformers import TrainingArguments, Trainer
 from pathlib import Path
-from dataset_helper import get_labelmap
-from model import VideoMAEForVideoClassification, get_processor
-from get_dataloader import get_dataset, collate_fn
-from metric import compute_metrics
+
+#add parrent dir to easy import
+import sys
+import os
+sys.path.append(os.path.dirname(__file__))
+#model 
+from transformers_video_model.model import VideoMAEForVideoClassification
+from transformers import TrainingArguments, Trainer
+#dataloader 
+from dataset import get_dataset, collate_fn
+from dataset.utils import get_label_map
+from dataset.processor import VideoMAEImageProcessor
+#metric funtion
+from helper_fn.metric import compute_metrics
 
 def main(dataset_root_path= "/work/21013187/SAM-SLR-v2/data/rgb",
          model_ckpt = "MCG-NJU/videomae-base" 
          ,num_epochs: int = 10,
          batch_size: int = 2):
-    
+    #prepare dataset info
     dataset_root_path = Path(dataset_root_path)
-    label2id, id2label = get_labelmap(dataset_root_path)
+    label2id, id2label = get_label_map(dataset_root_path)
+    #prepare model
+    # the last classify layer with change num class output with len(label2id)
     model = VideoMAEForVideoClassification.from_pretrained(model_ckpt, label2id=label2id, id2label=id2label)
-    image_processor = get_processor(model_ckpt)
+    #video processor to match the input of the modl
+    image_processor = VideoMAEImageProcessor(model_ckpt)
+    #get all dataset
     train_dataset, val_dataset, test_dataset = get_dataset(dataset_root_path, model, image_processor)
-    
+    #save dir
     model_name = model_ckpt.split("/")[-1]
     new_model_name = f"{model_name}-finetuned-ucf101-subset"
     

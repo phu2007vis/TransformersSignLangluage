@@ -1,11 +1,11 @@
 
 from pathlib import Path
 import os
-import pathlib
 from typing import List, Optional, Tuple
 from iopath.common.file_io import g_pathmgr
+from glob import glob
 
-def get_labelmap(dataset_root_path):
+def get_label_map(dataset_root_path):
 	if not isinstance(dataset_root_path,Path):
 		dataset_root_path = Path(dataset_root_path)
 
@@ -157,7 +157,7 @@ def find_number_classes(directory: Union[str, Path]) -> Tuple[List[str], Dict[st
 	
 	return max_class
 
-from glob import glob
+
 
 def make_dataset(
 	directory: Union[str, Path],

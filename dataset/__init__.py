@@ -112,11 +112,6 @@ def get_dataset(dataset_root_path,
 
 
 
-
-
-
-
-
 def collate_fn(examples):
     """The collation function to be used by `Trainer` to prepare data batches."""
     # permute to (num_frames, num_channels, height, width)

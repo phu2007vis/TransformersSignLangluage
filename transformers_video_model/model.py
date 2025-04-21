@@ -1,220 +1,34 @@
 
-def get_processor(model_ckpt):
-	from transformers import VideoMAEImageProcessor
-	return VideoMAEImageProcessor.from_pretrained(model_ckpt)
-
 
 """PyTorch VideoMAE (masked autoencoder) model."""
-
-import collections.abc
+#Basic import
 from copy import deepcopy
-from dataclasses import dataclass
 from typing import  Optional, Tuple, Union
-
 import torch
 from torch import nn
 from torch.nn import BCEWithLogitsLoss, CrossEntropyLoss, MSELoss
 
-from transformers.activations import ACT2FN
-from transformers.modeling_outputs import BaseModelOutput, ImageClassifierOutput
-from transformers.modeling_utils import  PreTrainedModel
 
-from transformers.utils import (
-	ModelOutput,
-	logging,
-)
+# Transformers utils
+from transformers.utils import logging
 from transformers.utils.constants import IMAGENET_DEFAULT_MEAN, IMAGENET_DEFAULT_STD
-from transformers.models.videomae.configuration_videomae import VideoMAEConfig
-from transformers.models.videomae.modeling_videomae import(
-	get_sinusoid_encoding_table,
- 	VideoMAEAttention,
-)
+from transformers.models.videomae.modeling_videomae import get_sinusoid_encoding_table
+from transformers.modeling_outputs import BaseModelOutput, ImageClassifierOutput
 
+#add the path for easy import
+import sys
+import os
+#add parrent dir to path
+sys.path.append(os.path.dirname(__file__))
+
+#abtract class to keep the data
+from catalog import VideoMAEConfig,VideoMAEPreTrainedModel,VideoMAEDecoderOutput,VideoMAEForPreTrainingOutput
+#model layer
+from layers import VideoMAELayer
+from patch_embedding import VideoMAEEmbeddings
+#log info
 logger = logging.get_logger(__name__)
 
-
-
-
-
-
-class VideoMAEEmbeddings(nn.Module):
-	"""
-	Construct the patch and position embeddings.
-
-	"""
-
-	def __init__(self, config):
-		super().__init__()
-
-		self.patch_embeddings = VideoMAEPatchEmbeddings(config)
-		self.num_patches = self.patch_embeddings.num_patches
-		# fixed sin-cos embedding
-		self.position_embeddings = get_sinusoid_encoding_table(self.num_patches, config.hidden_size)
-		self.config = config
-
-	def forward(self, pixel_values, bool_masked_pos):
-		# create patch embeddings
-		embeddings = self.patch_embeddings(pixel_values)
-
-		# add position embeddings
-		embeddings = embeddings + self.position_embeddings.detach().type_as(embeddings).to(
-			device=embeddings.device, copy=True
-		)
-		# only keep visible patches
-		# ~bool_masked_pos means visible
-		if bool_masked_pos is not None:
-			batch_size, _, num_channels = embeddings.shape
-			embeddings = embeddings[~bool_masked_pos]
-			embeddings = embeddings.reshape(batch_size, -1, num_channels)
-
-		return embeddings
-
-
-class VideoMAEPatchEmbeddings(nn.Module):
-	"""
-	Video to Patch Embedding. This module turns a batch of videos of shape (batch_size, num_frames, num_channels,
-	height, width) into a tensor of shape (batch_size, seq_len, hidden_size) to be consumed by a Transformer encoder.
-
-	The seq_len (the number of patches) equals (number of frames // tubelet_size) * (height // patch_size) * (width //
-	patch_size).
-
-	"""
-
-	def __init__(self, config):
-		super().__init__()
-
-		image_size = config.image_size
-		patch_size = config.patch_size
-		num_channels = config.num_channels
-		hidden_size = config.hidden_size
-		num_frames = config.num_frames
-		tubelet_size = config.tubelet_size
-
-		image_size = image_size if isinstance(image_size, collections.abc.Iterable) else (image_size, image_size)
-		patch_size = patch_size if isinstance(patch_size, collections.abc.Iterable) else (patch_size, patch_size)
-		self.image_size = image_size
-		self.patch_size = patch_size
-		self.tubelet_size = int(tubelet_size)
-		num_patches = (
-			(image_size[1] // patch_size[1]) * (image_size[0] // patch_size[0]) * (num_frames // self.tubelet_size)
-		)
-		self.num_channels = num_channels
-		self.num_patches = num_patches
-		self.projection = nn.Conv3d(
-			in_channels=num_channels,
-			out_channels=hidden_size,
-			kernel_size=(self.tubelet_size, patch_size[0], patch_size[1]),
-			stride=(self.tubelet_size, patch_size[0], patch_size[1]),
-		)
-
-	def forward(self, pixel_values):
-		batch_size, num_frames, num_channels, height, width = pixel_values.shape
-		if num_channels != self.num_channels:
-			raise ValueError(
-				"Make sure that the channel dimension of the pixel values match with the one set in the configuration."
-			)
-		if height != self.image_size[0] or width != self.image_size[1]:
-			raise ValueError(
-				f"Input image size ({height}*{width}) doesn't match model ({self.image_size[0]}*{self.image_size[1]})."
-			)
-		# permute to (batch_size, num_channels, num_frames, height, width)
-		pixel_values = pixel_values.permute(0, 2, 1, 3, 4)
-		embeddings = self.projection(pixel_values).flatten(2).transpose(1, 2)
-		return embeddings
-
-# Copied from transformers.models.vit.modeling_vit.ViTSelfOutput with ViT->VideoMAE
-class VideoMAESelfOutput(nn.Module):
-	"""
-	The residual connection is defined in VideoMAELayer instead of here (as is the case with other models), due to the
-	layernorm applied before each block.
-	"""
-
-	def __init__(self, config: VideoMAEConfig) -> None:
-		super().__init__()
-		self.dense = nn.Linear(config.hidden_size, config.hidden_size)
-		self.dropout = nn.Dropout(config.hidden_dropout_prob)
-
-	def forward(self, hidden_states: torch.Tensor, input_tensor: torch.Tensor) -> torch.Tensor:
-		hidden_states = self.dense(hidden_states)
-		hidden_states = self.dropout(hidden_states)
-
-		return hidden_states
-
-
-# Copied from transformers.models.vit.modeling_vit.ViTIntermediate ViT->VideoMAE
-class VideoMAEIntermediate(nn.Module):
-	def __init__(self, config: VideoMAEConfig) -> None:
-		super().__init__()
-		self.dense = nn.Linear(config.hidden_size, config.intermediate_size)
-		if isinstance(config.hidden_act, str):
-			self.intermediate_act_fn = ACT2FN[config.hidden_act]
-		else:
-			self.intermediate_act_fn = config.hidden_act
-
-	def forward(self, hidden_states: torch.Tensor) -> torch.Tensor:
-		hidden_states = self.dense(hidden_states)
-		hidden_states = self.intermediate_act_fn(hidden_states)
-
-		return hidden_states
-
-
-# Copied from transformers.models.vit.modeling_vit.ViTOutput ViT->VideoMAE
-class VideoMAEOutput(nn.Module):
-	def __init__(self, config: VideoMAEConfig) -> None:
-		super().__init__()
-		self.dense = nn.Linear(config.intermediate_size, config.hidden_size)
-		self.dropout = nn.Dropout(config.hidden_dropout_prob)
-
-	def forward(self, hidden_states: torch.Tensor, input_tensor: torch.Tensor) -> torch.Tensor:
-		hidden_states = self.dense(hidden_states)
-		hidden_states = self.dropout(hidden_states)
-
-		hidden_states = hidden_states + input_tensor
-
-		return hidden_states
-
-
-# Copied from transformers.models.vit.modeling_vit.ViTLayer with ViT->VideoMAE,VIT->VIDEOMAE
-class VideoMAELayer(nn.Module):
-	"""This corresponds to the Block class in the timm implementation."""
-
-	def __init__(self, config: VideoMAEConfig) -> None:
-		super().__init__()
-		self.chunk_size_feed_forward = config.chunk_size_feed_forward
-		self.seq_len_dim = 1
-		self.attention = VideoMAEAttention(config)
-		self.intermediate = VideoMAEIntermediate(config)
-		self.output = VideoMAEOutput(config)
-		self.layernorm_before = nn.LayerNorm(config.hidden_size, eps=config.layer_norm_eps)
-		self.layernorm_after = nn.LayerNorm(config.hidden_size, eps=config.layer_norm_eps)
-
-	def forward(
-		self,
-		hidden_states: torch.Tensor,
-		head_mask: Optional[torch.Tensor] = None,
-		output_attentions: bool = False,
-	) -> Union[Tuple[torch.Tensor, torch.Tensor], Tuple[torch.Tensor]]:
-		self_attention_outputs = self.attention(
-			self.layernorm_before(hidden_states),  # in VideoMAE, layernorm is applied before self-attention
-			head_mask,
-			output_attentions=output_attentions,
-		)
-		attention_output = self_attention_outputs[0]
-		outputs = self_attention_outputs[1:]  # add self attentions if we output attention weights
-
-		# first residual connection
-		hidden_states = attention_output + hidden_states
-
-		# in VideoMAE, layernorm is also applied after self-attention
-		layer_output = self.layernorm_after(hidden_states)
-		layer_output = self.intermediate(layer_output)
-
-		# second residual connection is done here
-		layer_output = self.output(layer_output, hidden_states)
-
-		outputs = (layer_output,) + outputs
-
-		return outputs
 
 
 # Copied from transformers.models.vit.modeling_vit.ViTEncoder with ViT->VideoMAE
@@ -269,30 +83,7 @@ class VideoMAEEncoder(nn.Module):
 		)
 
 
-class VideoMAEPreTrainedModel(PreTrainedModel):
-	"""
-	An abstract class to handle weights initialization and a simple interface for downloading and loading pretrained
-	models.
-	"""
 
-	config_class = VideoMAEConfig
-	base_model_prefix = "videomae"
-	main_input_name = "pixel_values"
-	supports_gradient_checkpointing = True
-	_supports_sdpa = True
-	_supports_flash_attn_2 = True
-
-	def _init_weights(self, module):
-		"""Initialize the weights"""
-		if isinstance(module, (nn.Linear, nn.Conv3d)):
-			# Slightly different from the TF version which uses truncated_normal for initialization
-			# cf https://github.com/pytorch/pytorch/pull/5617
-			module.weight.data.normal_(mean=0.0, std=self.config.initializer_range)
-			if module.bias is not None:
-				module.bias.data.zero_()
-		elif isinstance(module, nn.LayerNorm):
-			module.bias.data.zero_()
-			module.weight.data.fill_(1.0)
 
 
 class VideoMAEModel(VideoMAEPreTrainedModel):
