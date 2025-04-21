@@ -25,10 +25,10 @@ def main(dataset_root_path= "/work/21013187/SAM-SLR-v2/data/rgb",
     #prepare model
     # the last classify layer with change num class output with len(label2id)
     model = VideoMAEForVideoClassification.from_pretrained(model_ckpt, label2id=label2id, id2label=id2label)
-    #video processor to match the input of the modl
+    #video processor to match the input of the model
     image_processor = VideoMAEImageProcessor(model_ckpt)
     #get all dataset
-    train_dataset, val_dataset, test_dataset = get_dataset(dataset_root_path, model, image_processor)
+    train_dataset, val_dataset, test_dataset = get_dataset(dataset_root_path)
     #save dir
     model_name = model_ckpt.split("/")[-1]
     new_model_name = f"{model_name}-finetuned-ucf101-subset"

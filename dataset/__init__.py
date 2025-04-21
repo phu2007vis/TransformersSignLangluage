@@ -20,8 +20,10 @@ import pytorchvideo
 from dataset.utils import labeled_video_dataset
 
 def get_dataset(dataset_root_path,
-                   model,
-                   image_processor):
+                img_size = (224, 224),
+                mean = [0.5,0.5,0.5],
+                std = [0.5,0.5,0.5],
+                num_frames = 16):
 
     video_count_train = len(list(dataset_root_path.glob("train/rgb/*.avi")))
     video_count_val = len(list(dataset_root_path.glob("val/rgb/*.avi")))
@@ -29,23 +31,11 @@ def get_dataset(dataset_root_path,
     video_total = video_count_train + video_count_val + video_count_test
 
     print(f"Total videos: {video_total}")
-
-
-
-    if "shortest_edge" in image_processor.size:
-        height = width = image_processor.size["shortest_edge"]
-    else:
-        height = image_processor.size["height"]
-        width = image_processor.size["width"]
-        
-    resize_to = (height, width)
     
-    mean = image_processor.image_mean
-    std = image_processor.image_std
-    num_frames_to_sample = model.config.num_frames
+    # chua biet cai nay lam gi :)) nhung dung xoa
     sample_rate = 4
     fps = 30
-    clip_duration = num_frames_to_sample * sample_rate / fps
+    clip_duration = num_frames * sample_rate / fps
 
 
     # Training dataset transformations.
@@ -55,11 +45,11 @@ def get_dataset(dataset_root_path,
                 key="video",
                 transform=Compose(
                     [
-                        UniformTemporalSubsample(num_frames_to_sample),
+                        UniformTemporalSubsample(num_frames),
                         Lambda(lambda x: x / 255.0),
                         Normalize(mean, std),
                         RandomShortSideScale(min_size=256, max_size=320),
-                        RandomCrop(resize_to),
+                        RandomCrop(img_size),
                         RandomHorizontalFlip(p=0.5),
                     ]
                 ),
@@ -83,10 +73,10 @@ def get_dataset(dataset_root_path,
                 key="video",
                 transform=Compose(
                     [
-                        UniformTemporalSubsample(num_frames_to_sample),
+                        UniformTemporalSubsample(num_frames),
                         Lambda(lambda x: x / 255.0),
                         Normalize(mean, std),
-                        Resize(resize_to),
+                        Resize(img_size),
                     ]
                 ),
             ),
@@ -107,6 +97,7 @@ def get_dataset(dataset_root_path,
         decode_audio=False,
         transform=val_transform,
     )
+    
     return train_dataset,val_dataset,test_dataset
 
 
