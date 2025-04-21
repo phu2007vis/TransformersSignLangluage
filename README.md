@@ -2,7 +2,7 @@
 
 # Thay đổi cách đọc đường dẫn :
      - file dataset.__init__
-     - line 10606
+     - line 106
      - function make_dataset
 
 # Thay đổi cách xử lý dữ liệu từ đường dẫndẫn  ở:
