@@ -14,7 +14,9 @@ def get_label_map(dataset_root_path):
 		dataset_root_path = Path(dataset_root_path)
 
 	number_classes = max(find_number_classes(os.path.join(dataset_root_path,phase,'rgb')) for phase in ['train','val','test'])
-	label2id = {label: int(label) for  label in range(1,number_classes+1)}
+
+	# number_classes = 122
+	label2id = {label: int(i) for  i,label in enumerate(range(number_classes))}
 	id2label = {i: label for label, i in label2id.items()}
 	
 	print(f"Unique classes: {list(label2id.keys())}.")
@@ -95,7 +97,7 @@ def find_number_classes(directory: Union[str, Path]) -> Tuple[List[str], Dict[st
 				try:
 					class_id = int(os.path.splitext(entry.name)[0].split('P')[0].split('A')[1])
 				except:
-					print(entry, "Not follow the formate _A_P_.avi or .mp4 skip")
+					# print(entry, "Not follow the formate _A_P_.avi or .mp4 skip")
 					continue
 				max_class =  max_class if class_id is None else max(max_class, class_id)
 	
@@ -124,28 +126,29 @@ def make_dataset(
 
 	instances = []
 	available_classes = set()
-	class_to_idx = {i: i for i in range(1, number_classes + 1)}
+	class_to_idx = {cls: i for i,cls in enumerate(range(0, number_classes ))}
  
-	for class_index in class_to_idx:
-	
+	for class_index in class_to_idx.keys():
+		
 		rgb_target_path = glob(os.path.join(directory, f"*A{class_index}P*.avi"))+glob(os.path.join(directory, f"*A{class_index}P*.mp4"))
 		# print(f"Class {class_index} has {len(rgb_target_path)} files!")
 		for path  in sorted(rgb_target_path):
 				
 			item = path, class_index
+			class_index_mapped = class_to_idx[class_index]
 			instances.append(item)
 
-			if class_index not in available_classes:
-				available_classes.add(class_index)
-			
+			if class_index_mapped not in available_classes:
+				available_classes.add(class_index_mapped)
+		
 	
 	#debuging siuuu
-	empty_classes = set(class_to_idx.keys()) - available_classes
-	if empty_classes and not allow_empty:
-		msg = f"Found no valid file for the classes {', '.join(sorted(str(empty_classes)))}. "
-		if extensions is not None:
-			msg += f"Supported extensions are: {extensions if isinstance(extensions, str) else ', '.join(extensions)}"
-		raise FileNotFoundError(msg)
+	# empty_classes = set(class_to_idx.keys()) - available_classes
+	# if empty_classes and not allow_empty:
+	# 	msg = f"Found no valid file for the classes {', '.join(sorted(str(empty_classes)))}. "
+	# 	if extensions is not None:
+	# 		msg += f"Supported extensions are: {extensions if isinstance(extensions, str) else ', '.join(extensions)}"
+	# 	raise FileNotFoundError(msg)
 
 	return instances
 
@@ -198,6 +201,9 @@ class LabeledVideoDataset(torch.utils.data.IterableDataset):
 		self._transform = transform
 		self._clip_sampler = clip_sampler
 		self._labeled_videos = labeled_video_paths
+		
+		self._preprocess_path()
+		
 		self._decoder = decoder
 
 		# If a RandomSampler is used we need to pass in a custom random generator that
@@ -221,6 +227,14 @@ class LabeledVideoDataset(torch.utils.data.IterableDataset):
 		self._next_clip_start_time = 0.0
 		self.video_path_handler = VideoPathHandler()
 
+	def _preprocess_path(self):
+		self.__labeled_videos_landmarks = []
+		for video_path,label in self._labeled_videos:
+			folder_root,img_name = os.path.split(video_path)
+			root_dir = os.path.dirname(folder_root)
+			landmark_path = os.path.join(root_dir,'npy',img_name+".npy")
+			self.__labeled_videos_landmarks.append(((landmark_path,video_path),label))
+		assert(len(self.__labeled_videos_landmarks) == len(self.__labeled_videos_landmarks))
 
 	@property
 	def video_sampler(self):
@@ -269,7 +283,8 @@ class LabeledVideoDataset(torch.utils.data.IterableDataset):
 			else:
 				video_index = next(self._video_sampler_iter)
 				try:
-					video_path, info_dict = self._labeled_videos[video_index]
+					(landmark_path,video_path), info_dict = self.__labeled_videos_landmarks[video_index]
+				
 					video = self.video_path_handler.video_from_path(
 						video_path,
 						decode_audio=self._decode_audio,
@@ -335,7 +350,7 @@ class LabeledVideoDataset(torch.utils.data.IterableDataset):
 				# User can force dataset to continue by returning None in transform.
 				if sample_dict is None:
 					continue
-
+			
 			return sample_dict
 		else:
 			raise RuntimeError(

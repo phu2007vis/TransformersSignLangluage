@@ -17,8 +17,9 @@ from helper_fn.metric import compute_metrics
 
 def main(dataset_root_path= "/work/21013187/SAM-SLR-v2/data/rgb",
          model_ckpt = "MCG-NJU/videomae-base" 
-         ,num_epochs: int = 10,
-         batch_size: int = 2):
+         ,num_epochs: int = 5,
+         batch_size: int = 15):
+    
     #prepare dataset info
     dataset_root_path = Path(dataset_root_path)
     label2id, id2label = get_label_map(dataset_root_path)
@@ -31,23 +32,25 @@ def main(dataset_root_path= "/work/21013187/SAM-SLR-v2/data/rgb",
     train_dataset, val_dataset, test_dataset = get_dataset(dataset_root_path)
     #save dir
     model_name = model_ckpt.split("/")[-1]
-    new_model_name = f"{model_name}-finetuned-ucf101-subset"
-    
+    new_model_name = f"{model_name}-finetuned"
+    print(f"Batch size: {batch_size}") 
+    print(f"Epochs : {num_epochs}")
     args = TrainingArguments(
         new_model_name,
         remove_unused_columns=False,
         eval_strategy="epoch",
         save_strategy="epoch",
-        learning_rate=5e-7,
+        learning_rate=5e-5,
         per_device_train_batch_size=batch_size,
         per_device_eval_batch_size=batch_size,
         warmup_ratio=0.1,
-        logging_steps=10,
+        logging_steps=50,
         load_best_model_at_end=True,
         metric_for_best_model="accuracy",
         push_to_hub=False,
         max_steps=(train_dataset.num_videos // batch_size) * num_epochs,
         report_to="none",
+        
     )
     
     trainer = Trainer(
