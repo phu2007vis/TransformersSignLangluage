@@ -22,7 +22,10 @@
      --test
      --val
 ```
-
+# Training
+```bash
+CUDA_VISIBLE_DEVICES=1,2,6 python /work/21013187/SAM-SLR-v2/phuoc_src/train.py
+``` 
 # Requirements 
 - Tranformers >= 4.5 (in my case)
 - Python 3.11 (my case)
