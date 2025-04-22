@@ -16,10 +16,14 @@ ANPM , N is Class, M is sample id , A denoted for Action (class) P is person cus
 --root
      --train
           -rgb
-               - __A1P2.avi
-               - __A2P2.avi
-               - __A3P5.avi
+               - __A1P2.avi (Class 1)
+               - __A1P2.avi (class 1)
+               - __A2P2.avi (class 2)
+               - __A3P5.avi (class 3)
                - __A__P__.avi
+          -npy (landmark)
+               - __A1P2.npy (T,N,C) c = 3 (x,y,z) N is number of keypoints
+               ...
      --test
      --val
 ```
