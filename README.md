@@ -1,16 +1,17 @@
 
 
-# Thay đổi cách đọc đường dẫn :
+# Customeize read data path  :
      - file dataset.__init__
      - line 106
      - function make_dataset
 
-# Thay đổi cách xử lý dữ liệu từ đường dẫndẫn  ở:
+# Customize how input read and transforms to fit mode input:
      -- file dataset.utils
      -- line 242
      -- function __next__
 
 # Dataset format
+ANPM , N is Class, M is sample id , A denoted for Action (class) P is person customized for our case 
 ```
 --root
      --train
