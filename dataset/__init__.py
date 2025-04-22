@@ -1,18 +1,19 @@
 import os
 import torch
 
-from pytorchvideo.transforms import (
+from dataset.video_transforms import (
     ApplyTransformToKey,
     Normalize,
     RandomShortSideScale,
     UniformTemporalSubsample,
+    RandomHorizontalFlip,
+    RemoveKey
 )
 
 from torchvision.transforms import (
     Compose,
     Lambda,
     RandomCrop,
-    RandomHorizontalFlip,
     Resize,
 )
 
@@ -41,11 +42,16 @@ def get_dataset(dataset_root_path,
     # Training dataset transformations.
     train_transform = Compose(
         [
+            # apply all the key
+            RemoveKey(['video_index','clip_index','aug_index','video_name']),
+            UniformTemporalSubsample(num_frames),
+            # apply just only key focus
+            #remove unuse key
+            RemoveKey(['video_index','clip_index','aug_index','video_name']),
             ApplyTransformToKey(
-                key="video",
+                key = 'video',
                 transform=Compose(
                     [
-                        UniformTemporalSubsample(num_frames),
                         Lambda(lambda x: x / 255.0),
                         Normalize(mean, std),
                         RandomShortSideScale(min_size=256, max_size=320),
@@ -57,7 +63,7 @@ def get_dataset(dataset_root_path,
         ]
     )
 
-
+    
     # Training dataset.
     train_dataset = labeled_video_dataset(
         data_path=os.path.join(dataset_root_path, "train",'rgb'),
@@ -69,11 +75,12 @@ def get_dataset(dataset_root_path,
     # Validation and evaluation datasets' transformations.
     val_transform = Compose(
         [
+            RemoveKey(['video_index','clip_index','aug_index','video_name']),
+            UniformTemporalSubsample(num_frames),
             ApplyTransformToKey(
                 key="video",
                 transform=Compose(
                     [
-                        UniformTemporalSubsample(num_frames),
                         Lambda(lambda x: x / 255.0),
                         Normalize(mean, std),
                         Resize(img_size),

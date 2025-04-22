@@ -8,6 +8,8 @@ from glob import glob
 import torch.utils.data
 from pytorchvideo.data.clip_sampling import ClipSampler
 from pytorchvideo.data.video import VideoPathHandler
+import numpy as np
+
 
 def get_label_map(dataset_root_path):
 	if not isinstance(dataset_root_path,Path):
@@ -286,13 +288,14 @@ class LabeledVideoDataset(torch.utils.data.IterableDataset):
 			
 			if not os.path.exists(landmark_path):
 				print(f"Body landmark is not exist: {landmark_path}")
-	
+			landmark = torch.tensor(np.load(landmark_path)).float()
+			
 			video = self.video_path_handler.video_from_path(
 				video_path,
 				decode_audio=self._decode_audio,
 				decoder=self._decoder,
 			)
-			self._loaded_video_label = (video, info_dict, video_index)
+			self._loaded_video_label = (video,landmark, info_dict, video_index)
 
 
 			(
@@ -331,6 +334,7 @@ class LabeledVideoDataset(torch.utils.data.IterableDataset):
 				"video_index": video_index,
 				"clip_index": clip_index,
 				"aug_index": aug_index,
+				'landmark': landmark,
 				**info_dict,
 			}
    
