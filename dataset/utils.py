@@ -272,69 +272,59 @@ class LabeledVideoDataset(torch.utils.data.IterableDataset):
 				}
 		"""
 		if not self._video_sampler_iter:
+			
 			# Setup MultiProcessSampler here - after PyTorch DataLoader workers are spawned.
 			self._video_sampler_iter = iter(MultiProcessSampler(self._video_sampler))
 
 		for i_try in range(self._MAX_CONSECUTIVE_FAILURES):
 			# Reuse previously stored video if there are still clips to be sampled from
 			# the last loaded video.
-			if self._loaded_video_label:
-				video, info_dict, video_index = self._loaded_video_label
-			else:
-				video_index = next(self._video_sampler_iter)
-				try:
-					(landmark_path,video_path), info_dict = self.__labeled_videos_landmarks[video_index]
-				
-					video = self.video_path_handler.video_from_path(
-						video_path,
-						decode_audio=self._decode_audio,
-						decoder=self._decoder,
-					)
-					self._loaded_video_label = (video, info_dict, video_index)
-				except Exception as e:
-					print.debug(
-						"Failed to load video with error: {}; trial {}".format(
-							e,
-							i_try,
-						)
-					)
-					continue
+			
+			video_index = next(self._video_sampler_iter)
+			
+			(landmark_path,video_path), info_dict = self.__labeled_videos_landmarks[video_index]
+			
+			if not os.path.exists(landmark_path):
+				print(f"Body landmark is not exist: {landmark_path}")
+	
+			video = self.video_path_handler.video_from_path(
+				video_path,
+				decode_audio=self._decode_audio,
+				decoder=self._decoder,
+			)
+			self._loaded_video_label = (video, info_dict, video_index)
+
 
 			(
 				clip_start,
 				clip_end,
 				clip_index,
 				aug_index,
-				is_last_clip,
+				_,
 			) = self._clip_sampler(
 				self._next_clip_start_time, video.duration, info_dict
 			)
-
-			# Only load the clip once and reuse previously stored clip if there are multiple
-			# views for augmentations to perform on the same clip.
-			if aug_index == 0:
-				self._loaded_clip = video.get_clip(clip_start, clip_end)
-
+			
+			self._loaded_clip = video.get_clip(clip_start, clip_end)
+			
 			self._next_clip_start_time = clip_end
 
 			video_is_null = (
 				self._loaded_clip is None or self._loaded_clip["video"] is None
 			)
-			if is_last_clip or video_is_null:
-				# Close the loaded encoded video and reset the last sampled clip time ready
-				# to sample a new video on the next iteration.
-				self._loaded_video_label[0].close()
-				self._loaded_video_label = None
-				self._next_clip_start_time = 0.0
+			
+			# Close the loaded encoded video and reset the last sampled clip time ready
+			# to sample a new video on the next iteration.
+			self._loaded_video_label[0].close()
+			self._next_clip_start_time = 0.0
 
-				if video_is_null:
-					print(
-						"Failed to load clip {}; trial {}".format(video.name, i_try)
-					)
-					continue
+			if video_is_null:
+				print(
+					"Failed to load clip {}; trial {}".format(video.name, i_try)
+				)
+				continue
 
 			frames = self._loaded_clip["video"]
-			audio_samples = self._loaded_clip["audio"]
 			sample_dict = {
 				"video": frames,
 				"video_name": video.name,
@@ -342,15 +332,13 @@ class LabeledVideoDataset(torch.utils.data.IterableDataset):
 				"clip_index": clip_index,
 				"aug_index": aug_index,
 				**info_dict,
-				**({"audio": audio_samples} if audio_samples is not None else {}),
 			}
+   
 			if self._transform is not None:
 				sample_dict = self._transform(sample_dict)
-
 				# User can force dataset to continue by returning None in transform.
 				if sample_dict is None:
 					continue
-			
 			return sample_dict
 		else:
 			raise RuntimeError(
