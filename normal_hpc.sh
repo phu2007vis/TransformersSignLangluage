@@ -23,5 +23,5 @@ conda activate py311
 
 python --version
 
-CUDA_VISIBLE_DEVICES=6,7 python /work/21013187/SAM-SLR-v2/phuoc_src/train.py 
+CUDA_VISIBLE_DEVICES=6,7  python /work/21013187/SAM-SLR-v2/phuoc_src/train.py 
 

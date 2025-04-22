@@ -11,7 +11,7 @@ from transformers import TrainingArguments, Trainer
 #dataloader 
 from dataset import get_dataset, collate_fn
 from dataset.utils import get_label_map
-
+from dataset.processor import VideoMAEImageProcessor
 #metric funtion
 from helper_fn.metric import compute_metrics
 
@@ -22,12 +22,10 @@ def main(dataset_root_path= "/work/21013187/SAM-SLR-v2/data/rgb",
     
     #prepare dataset info
     dataset_root_path = Path(dataset_root_path)
-    label2id, id2label = get_label_map(dataset_root_path)
     #prepare model
     # the last classify layer with change num class output with len(label2id)
-    model = VideoMAEForVideoClassification.from_pretrained(model_ckpt, label2id=label2id, id2label=id2label)
-    #video processor to match the input of the model
-
+    model = VideoMAEForVideoClassification.from_pretrained("/work/21013187/SAM-SLR-v2/videomae-base-finetuned/checkpoint-2792")
+    
     #get all dataset
     train_dataset, val_dataset, test_dataset = get_dataset(dataset_root_path)
     #save dir
@@ -61,11 +59,8 @@ def main(dataset_root_path= "/work/21013187/SAM-SLR-v2/data/rgb",
         compute_metrics=compute_metrics,
         data_collator=collate_fn,
     )
-    
-    train_results = trainer.train()
-    trainer.evaluate(test_dataset)
-    
-    trainer.save_model()
+   
+
     test_results = trainer.evaluate(test_dataset)
     trainer.log_metrics("test", test_results)
     trainer.save_metrics("test", test_results)

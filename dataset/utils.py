@@ -155,6 +155,43 @@ def make_dataset(
 	return instances
 
 
+import cv2
+import numpy as np
+import torch
+
+def video_loader(video_path):
+    vidcap = cv2.VideoCapture(str(video_path))
+    frame_count = int(vidcap.get(cv2.CAP_PROP_FRAME_COUNT))
+    width = int(vidcap.get(cv2.CAP_PROP_FRAME_WIDTH))
+    height = int(vidcap.get(cv2.CAP_PROP_FRAME_HEIGHT))
+    
+    # Assuming 3 channels (RGB)
+    frames = np.empty((frame_count, height, width, 3), dtype=np.uint8)
+
+    idx = 0
+    success, image = vidcap.read()
+    while success and idx < frame_count:
+        frames[idx] = image
+        success, image = vidcap.read()
+        idx += 1
+
+    vidcap.release()
+
+    # Truncate if read fewer frames than expected
+    frames = frames[:idx]
+    # Convert to tensor: C,T,H,W
+    return torch.from_numpy(frames).permute(3, 0, 1, 2).float()
+
+def save_video_as_npy(video_tensor, video_path):
+    # Convert tensor from C,T,H,W to T,H,W,C and back to uint8
+    video_array = video_tensor.permute(1, 2, 3, 0).to(torch.uint8).numpy()
+    # Save as .npy file
+    np.save(video_path, video_array)
+
+def load_video_from_npy(video_path):
+    # Load .npy file and convert back to tensor with C,T,H,W format
+    video_array = np.load(video_path)
+    return torch.from_numpy(video_array).permute(3, 0, 1, 2).float()
 
 
 class LabeledVideoDataset(torch.utils.data.IterableDataset):
@@ -236,6 +273,8 @@ class LabeledVideoDataset(torch.utils.data.IterableDataset):
 			root_dir = os.path.dirname(folder_root)
 			landmark_path = os.path.join(root_dir,'npy',img_name+".npy")
 			self.__labeled_videos_landmarks.append(((landmark_path,video_path),label))
+
+			
 		assert(len(self.__labeled_videos_landmarks) == len(self.__labeled_videos_landmarks))
 
 	@property
@@ -285,55 +324,28 @@ class LabeledVideoDataset(torch.utils.data.IterableDataset):
 			video_index = next(self._video_sampler_iter)
 			
 			(landmark_path,video_path), info_dict = self.__labeled_videos_landmarks[video_index]
+			cache_dir = os.path.join(os.path.dirname(os.path.dirname(video_path)),"cache")
+			id = os.path.splitext(os.path.basename(video_path))[0]
+			base_cache_name = id+".npy"
+			cache_video_path = os.path.join(cache_dir,base_cache_name)
 			
+			if os.path.exists(cache_video_path):
+				video = load_video_from_npy(cache_video_path)
+			else:
+				
+				video = video_loader(video_path)
+				if not os.path.exists(cache_dir): os.mkdir(cache_dir)
+				save_video_as_npy(video,cache_video_path)
+				
+
+
 			if not os.path.exists(landmark_path):
 				print(f"Body landmark is not exist: {landmark_path}")
 			landmark = torch.tensor(np.load(landmark_path)).float()
-			
-			video = self.video_path_handler.video_from_path(
-				video_path,
-				decode_audio=self._decode_audio,
-				decoder=self._decoder,
-			)
-			self._loaded_video_label = (video,landmark, info_dict, video_index)
 
-
-			(
-				clip_start,
-				clip_end,
-				clip_index,
-				aug_index,
-				_,
-			) = self._clip_sampler(
-				self._next_clip_start_time, video.duration, info_dict
-			)
-			
-			self._loaded_clip = video.get_clip(clip_start, clip_end)
-			
-			self._next_clip_start_time = clip_end
-
-			video_is_null = (
-				self._loaded_clip is None or self._loaded_clip["video"] is None
-			)
-			
-			# Close the loaded encoded video and reset the last sampled clip time ready
-			# to sample a new video on the next iteration.
-			self._loaded_video_label[0].close()
-			self._next_clip_start_time = 0.0
-
-			if video_is_null:
-				print(
-					"Failed to load clip {}; trial {}".format(video.name, i_try)
-				)
-				continue
-
-			frames = self._loaded_clip["video"]
 			sample_dict = {
-				"video": frames,
-				"video_name": video.name,
+				"video": video,
 				"video_index": video_index,
-				"clip_index": clip_index,
-				"aug_index": aug_index,
 				'landmark': landmark,
 				**info_dict,
 			}
@@ -343,6 +355,7 @@ class LabeledVideoDataset(torch.utils.data.IterableDataset):
 				# User can force dataset to continue by returning None in transform.
 				if sample_dict is None:
 					continue
+			
 			return sample_dict
 		else:
 			raise RuntimeError(
