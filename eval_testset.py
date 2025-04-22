@@ -10,8 +10,7 @@ from transformers_video_model.model import VideoMAEForVideoClassification
 from transformers import TrainingArguments, Trainer
 #dataloader 
 from dataset import get_dataset, collate_fn
-from dataset.utils import get_label_map
-from dataset.processor import VideoMAEImageProcessor
+
 #metric funtion
 from helper_fn.metric import compute_metrics
 

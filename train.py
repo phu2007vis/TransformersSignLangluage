@@ -25,7 +25,7 @@ def main(dataset_root_path= "/work/21013187/SAM-SLR-v2/data/rgb",
     label2id, id2label = get_label_map(dataset_root_path)
     #prepare model
     # the last classify layer with change num class output with len(label2id)
-    model = VideoMAEForVideoClassification.from_pretrained(model_ckpt, label2id=label2id, id2label=id2label)
+    model = VideoMAEForVideoClassification.from_pretrained("/work/21013187/SAM-SLR-v2/videomae-base-finetuned_filnal/checkpoint-2792",)
     #video processor to match the input of the model
 
     #get all dataset
@@ -50,7 +50,7 @@ def main(dataset_root_path= "/work/21013187/SAM-SLR-v2/data/rgb",
         push_to_hub=False,
         max_steps=(train_dataset.num_videos // batch_size) * num_epochs,
         report_to="none",
-        
+       
     )
     
     trainer = Trainer(
@@ -60,6 +60,7 @@ def main(dataset_root_path= "/work/21013187/SAM-SLR-v2/data/rgb",
         eval_dataset=val_dataset,
         compute_metrics=compute_metrics,
         data_collator=collate_fn,
+        
     )
     
     train_results = trainer.train()

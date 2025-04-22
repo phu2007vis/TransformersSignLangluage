@@ -62,7 +62,8 @@ def get_dataset(dataset_root_path,
             ),
         ]
     )
-
+ 
+ 
     
     # Training dataset.
     train_dataset = labeled_video_dataset(
@@ -116,5 +117,8 @@ def collate_fn(examples):
     pixel_values = torch.stack(
         [example["video"].permute(1, 0, 2, 3) for example in examples]
     )
+    landmarks = torch.stack(
+        [example["landmark"] for example in examples]
+    )
     labels = torch.tensor([example["label"] for example in examples],dtype=torch.long)
-    return {"pixel_values": pixel_values, "labels": labels}
+    return {"pixel_values": pixel_values, "labels": labels,"landmarks":landmarks}
