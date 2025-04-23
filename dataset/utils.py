@@ -112,7 +112,7 @@ def find_number_classes(directory: Union[str, Path]) -> Tuple[List[str], Dict[st
 def make_dataset(
 	directory: Union[str, Path],
 	class_to_idx: Optional[Dict[str, int]] = None,
-	extensions: Optional[Union[str, Tuple[str, ...]]] = '.avi',
+	extensions: Optional[Union[str, Tuple[str, ...]]] = ('.avi', '.mp4'),
 	is_valid_file: Optional[Callable[[str], bool]] = None,
 	allow_empty: bool = False,
 ) -> List[Tuple[str, int]]:
@@ -200,6 +200,11 @@ def load_video_from_npy(video_path):
     # Load .npy file and convert back to tensor with C,T,H,W format
     video_array = np.load(video_path)
     return torch.from_numpy(video_array).permute(3, 0, 1, 2).float()
+
+
+
+
+
 
 #region Iter dataset
 
@@ -302,7 +307,7 @@ class LabeledVideoDataset(torch.utils.data.IterableDataset):
 			Number of videos in dataset.
 		"""
 		return len(self.video_sampler)
-
+#region __next__
 	def __next__(self) -> dict:
 		"""
 		Retrieves the next clip based on the clip sampling strategy and video sampler.

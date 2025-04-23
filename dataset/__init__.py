@@ -3,11 +3,19 @@ import torch
 
 from dataset.video_transforms import (
     ApplyTransformToKey,
-    Normalize,
+    Normalize as VideoNormalize,
     RandomShortSideScale,
     UniformTemporalSubsample,
-    RandomHorizontalFlip,
+    RandomHorizontalFlip as VideoRandomHorizontalFlip,
     RemoveKey
+)
+
+from dataset.landmark_transforms import (
+    Normalize as LandmarkNormalize,
+    RandomHorizontalFlip as LandmarkRandomHorizontalFlip,
+    UniformTemporalSubsample as LandmarkUniformTemporalSubsample,
+    RandomCrop as LandmarkRandomCrop,
+    Resize as LandmarkResize
 )
 
 from torchvision.transforms import (
@@ -38,7 +46,8 @@ def get_dataset(dataset_root_path,
     fps = 30
     clip_duration = num_frames * sample_rate / fps
 
-
+    # -- NOTE -- Tung: transfrom tren vid -> transform tren landmark tuong tu k (cung gia tri so voi vid)
+    
     # Training dataset transformations.
     train_transform = Compose(
         [
@@ -53,17 +62,27 @@ def get_dataset(dataset_root_path,
                 transform=Compose(
                     [
                         Lambda(lambda x: x / 255.0),
-                        Normalize(mean, std),
+                        VideoNormalize(mean, std),
                         RandomShortSideScale(min_size=256, max_size=320),
                         RandomCrop(img_size),
-                        RandomHorizontalFlip(p=0.5),
+                        VideoRandomHorizontalFlip(p=0.5),
+                    ]
+                ),
+            ),
+
+            ApplyTransformToKey(
+                key = 'landmark',
+                transform=Compose(
+                    [
+                        LandmarkNormalize(mean=(0, 0, 0), std=(1, 1, 1)),  
+                        LandmarkUniformTemporalSubsample(num_frames),  
+                        LandmarkRandomCrop(output_size=img_size, original_size=(256, 256)),  
+                        LandmarkRandomHorizontalFlip(p=0.5),  
                     ]
                 ),
             ),
         ]
     )
- 
- 
     
     # Training dataset.
     train_dataset = labeled_video_dataset(
@@ -83,8 +102,19 @@ def get_dataset(dataset_root_path,
                 transform=Compose(
                     [
                         Lambda(lambda x: x / 255.0),
-                        Normalize(mean, std),
+                        VideoNormalize(mean, std),
                         Resize(img_size),
+                    ]
+                ),
+            ),
+            # Add transform for landmark - validation set
+            ApplyTransformToKey(
+                key = 'landmark',
+                transform=Compose(
+                    [
+                        LandmarkNormalize(mean=(0, 0, 0), std=(1, 1, 1)),
+                        LandmarkUniformTemporalSubsample(num_frames),
+                        LandmarkResize(size=img_size, original_size=(256, 256)),
                     ]
                 ),
             ),

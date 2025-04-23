@@ -169,7 +169,7 @@ class TestLabeledVideoPaths(unittest.TestCase):
         paths.path_prefix = '/data'
         path, info = paths[0]
         self.assertEqual(path, '/data/video1.mp4')
-        self.assertEqual(info['label'], 0)
+        self.assertEqual(info['label'], )
 
 
 class TestDatasetIntegration(unittest.TestCase):

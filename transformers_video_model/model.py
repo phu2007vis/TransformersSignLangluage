@@ -259,7 +259,7 @@ class VideoMAEForVideoClassification(VideoMAEPreTrainedModel):
 
 	def forward(
 		self,
-		landmarks =None,
+		landmarks : Optional[torch.Tensor] = None,
 		pixel_values: Optional[torch.Tensor] = None,
 		head_mask: Optional[torch.Tensor] = None,
 		labels: Optional[torch.Tensor] = None,
