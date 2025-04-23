@@ -1,6 +1,7 @@
 import torch.nn as nn
 import collections
 from transformers.models.videomae.modeling_videomae import get_sinusoid_encoding_table
+import torch
 
 class VideoMAEEmbeddings(nn.Module):
 	"""
@@ -13,16 +14,19 @@ class VideoMAEEmbeddings(nn.Module):
 
 		self.patch_embeddings = VideoMAEPatchEmbeddings(config)
 		self.num_patches = self.patch_embeddings.num_patches
-		# fixed sin-cos embedding
-		self.position_embeddings = get_sinusoid_encoding_table(self.num_patches, config.hidden_size)
+		# fixed sin-cos embedding 
+     	#100 for additionall info like landmarks
+		self.position_embeddings = get_sinusoid_encoding_table(self.num_patches+64, config.hidden_size)
 		self.config = config
 
-	def forward(self, pixel_values, bool_masked_pos):
+		
+	def forward(self, pixel_values, bool_masked_pos,landmarks):
+		
 		# create patch embeddings
-		embeddings = self.patch_embeddings(pixel_values)
-
+		embeddings = self.patch_embeddings(pixel_values,landmarks)
+		t = embeddings.shape[1]
 		# add position embeddings
-		embeddings = embeddings + self.position_embeddings.detach().type_as(embeddings).to(
+		embeddings = embeddings + self.position_embeddings[:,:t,:].detach().type_as(embeddings).to(
 			device=embeddings.device, copy=True
 		)
 		# only keep visible patches
@@ -71,8 +75,9 @@ class VideoMAEPatchEmbeddings(nn.Module):
 			kernel_size=(self.tubelet_size, patch_size[0], patch_size[1]),
 			stride=(self.tubelet_size, patch_size[0], patch_size[1]),
 		)
+		self.landmark_proj = nn.Linear(133*3,hidden_size)
 
-	def forward(self, pixel_values):
+	def forward(self, pixel_values,landmarks):
 		batch_size, num_frames, num_channels, height, width = pixel_values.shape
 		if num_channels != self.num_channels:
 			raise ValueError(
@@ -85,4 +90,10 @@ class VideoMAEPatchEmbeddings(nn.Module):
 		# permute to (batch_size, num_channels, num_frames, height, width)
 		pixel_values = pixel_values.permute(0, 2, 1, 3, 4)
 		embeddings = self.projection(pixel_values).flatten(2).transpose(1, 2)
+  
+		if landmarks is not None:
+			# B,T,133,3 -> B,T,133*3
+			landmarks = self.landmark_proj(landmarks.flatten(-2))
+			embeddings = torch.cat([embeddings,landmarks],dim = 1)
+   
 		return embeddings

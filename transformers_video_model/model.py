@@ -49,7 +49,7 @@ class VideoMAEEncoder(nn.Module):
 	) -> Union[tuple, BaseModelOutput]:
 		all_hidden_states = () if output_hidden_states else None
 		all_self_attentions = () if output_attentions else None
-
+		
 		for i, layer_module in enumerate(self.layer):
 			if output_hidden_states:
 				all_hidden_states = all_hidden_states + (hidden_states,)
@@ -105,7 +105,7 @@ class VideoMAEModel(VideoMAEPreTrainedModel):
 	def get_input_embeddings(self):
 		return self.embeddings.patch_embeddings
 
-	def _prune_heads(self, heads_to_prune):
+	def _prune_heads(self, heads_to_prune,landmarks  ):
 		"""
 		Prunes heads of the model. heads_to_prune: dict of {layer_num: list of heads to prune in this layer} See base
 		class PreTrainedModel
@@ -117,6 +117,7 @@ class VideoMAEModel(VideoMAEPreTrainedModel):
 	def forward(
 		self,
 		pixel_values: torch.FloatTensor,
+		landmarks = None,
 		bool_masked_pos: Optional[torch.BoolTensor] = None,
 		head_mask: Optional[torch.Tensor] = None,
 		output_attentions: Optional[bool] = None,
@@ -217,7 +218,7 @@ class VideoMAEModel(VideoMAEPreTrainedModel):
 		# and head_mask is converted to shape [num_hidden_layers x batch x num_heads x seq_length x seq_length]
 		head_mask = self.get_head_mask(head_mask, self.config.num_hidden_layers)
 
-		embedding_output = self.embeddings(pixel_values, bool_masked_pos)
+		embedding_output = self.embeddings(pixel_values, bool_masked_pos,landmarks)
 
 		encoder_outputs = self.encoder(
 			embedding_output,
@@ -258,7 +259,7 @@ class VideoMAEForVideoClassification(VideoMAEPreTrainedModel):
 
 	def forward(
 		self,
-		landmarks,
+		landmarks =None,
 		pixel_values: Optional[torch.Tensor] = None,
 		head_mask: Optional[torch.Tensor] = None,
 		labels: Optional[torch.Tensor] = None,
@@ -355,10 +356,12 @@ class VideoMAEForVideoClassification(VideoMAEPreTrainedModel):
 
 		outputs = self.videomae(
 			pixel_values,
+			landmarks = landmarks,
 			head_mask=head_mask,
 			output_attentions=output_attentions,
 			output_hidden_states=output_hidden_states,
 			return_dict=return_dict,
+	
 		)
 
 		sequence_output = outputs[0]
