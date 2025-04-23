@@ -1,7 +1,7 @@
 
 from pathlib import Path
 import os
-from typing import List, Optional, Tuple,Type, Any, Callable, Dict
+from typing import Any, Callable, cast, Dict, List, Optional, Tuple, Union, Type
 from pytorchvideo.data.utils import MultiProcessSampler
 from glob import glob
 
@@ -11,17 +11,19 @@ from pytorchvideo.data.video import VideoPathHandler
 import numpy as np
 
 
-def get_label_map(dataset_root_path):
+def get_label_map(dataset_root_path,
+                  dataset_type: str = 'rgb') -> Tuple[Dict[str, int], Dict[int, str]]:
 	if not isinstance(dataset_root_path,Path):
 		dataset_root_path = Path(dataset_root_path)
 
-	number_classes = max(find_number_classes(os.path.join(dataset_root_path,phase,'rgb')) for phase in ['train','val','test'])
+	number_classes = max(find_number_classes(os.path.join(dataset_root_path,phase,dataset_type)) for phase in ['train','val','test'])
 
 	# number_classes = 122
 	label2id = {label: int(i) for  i,label in enumerate(range(number_classes))}
 	id2label = {i: label for label, i in label2id.items()}
 	
-	print(f"Unique classes: {list(label2id.keys())}.")
+	#print(f"Unique classes: {list(label2id.keys())}.")
+	print("Label 2 ID:\n",'\n'.join([f'{k}: {v}' for k, v in label2id.items()]))
 	return label2id,id2label
 
 
@@ -58,7 +60,7 @@ class LabeledVideoPaths:
 		return len(self._paths_and_labels)
 
 
-from typing import Any, Callable, cast, Dict, List, Optional, Tuple, Union
+
 IMG_EXTENSIONS = (".jpg", ".jpeg", ".png", ".ppm", ".bmp", ".pgm", ".tif", ".tiff", ".webp")
 
 
@@ -110,7 +112,7 @@ def find_number_classes(directory: Union[str, Path]) -> Tuple[List[str], Dict[st
 def make_dataset(
 	directory: Union[str, Path],
 	class_to_idx: Optional[Dict[str, int]] = None,
-	extensions: Optional[Union[str, Tuple[str, ...]]] = None,
+	extensions: Optional[Union[str, Tuple[str, ...]]] = '.avi',
 	is_valid_file: Optional[Callable[[str], bool]] = None,
 	allow_empty: bool = False,
 ) -> List[Tuple[str, int]]:
@@ -131,10 +133,15 @@ def make_dataset(
 	class_to_idx = {cls: i for i,cls in enumerate(range(0, number_classes ))}
  
 	for class_index in class_to_idx.keys():
-		
-		rgb_target_path = glob(os.path.join(directory, f"*A{class_index}P*.avi"))+glob(os.path.join(directory, f"*A{class_index}P*.mp4"))
+		#handle .npy for depth + landmarks
+  
+		#data_target_path = glob(os.path.join(directory, f"*A{class_index}P*.avi"))+glob(os.path.join(directory, f"*A{class_index}P*.mp4"))
+		data_target_path = []
+		exts = extensions if isinstance(extensions, tuple) else [extensions]
+		for ext in exts:
+			data_target_path.extend(glob(os.path.join(directory, f"*A{class_index}P*{ext}")))
 		# print(f"Class {class_index} has {len(rgb_target_path)} files!")
-		for path  in sorted(rgb_target_path):
+		for path  in sorted(data_target_path):
 				
 			item = path, class_index
 			class_index_mapped = class_to_idx[class_index]
@@ -154,6 +161,7 @@ def make_dataset(
 
 	return instances
 
+#region RGB Loader
 
 import cv2
 import numpy as np
@@ -193,6 +201,7 @@ def load_video_from_npy(video_path):
     video_array = np.load(video_path)
     return torch.from_numpy(video_array).permute(3, 0, 1, 2).float()
 
+#region Iter dataset
 
 class LabeledVideoDataset(torch.utils.data.IterableDataset):
 	"""

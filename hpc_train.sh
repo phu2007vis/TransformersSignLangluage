@@ -22,7 +22,7 @@ conda deactivate
 conda deactivate
 
 conda activate py311
-export CUDA_VISIBLE_DEVICES=6,7
+export CUDA_VISIBLE_DEVICES=1,2
 python --version
 
 torchrun --nproc_per_node=2 \
