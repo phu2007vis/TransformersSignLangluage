@@ -18,14 +18,14 @@ from helper_fn.metric import compute_metrics
 def main(dataset_root_path= "/work/21013187/SAM-SLR-v2/data/rgb",
          model_ckpt = "MCG-NJU/videomae-base" 
          ,num_epochs: int = 5,
-         batch_size: int = 15):
+         batch_size: int = 20):
     
     #prepare dataset info
     dataset_root_path = Path(dataset_root_path)
-    label2id, id2label = get_label_map(dataset_root_path)
+    # label2id, id2label = get_label_map(dataset_root_path)
     #prepare model
     # the last classify layer with change num class output with len(label2id)
-    model = VideoMAEForVideoClassification.from_pretrained("/work/21013187/SAM-SLR-v2/videomae-base-finetuned_filnal/checkpoint-2792",)
+    model = VideoMAEForVideoClassification.from_pretrained("/work/21013187/SAM-SLR-v2/videomae-base-finetuned_with_landmark/checkpoint-4886",)
     #video processor to match the input of the model
 
     #get all dataset
@@ -40,7 +40,7 @@ def main(dataset_root_path= "/work/21013187/SAM-SLR-v2/data/rgb",
         remove_unused_columns=False,
         eval_strategy="epoch",
         save_strategy="epoch",
-        learning_rate=5e-5,
+        learning_rate=5e-6,
         per_device_train_batch_size=batch_size,
         per_device_eval_batch_size=batch_size,
         warmup_ratio=0.1,

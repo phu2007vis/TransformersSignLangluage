@@ -27,6 +27,11 @@ ANPM , N is Class, M is sample id , A denoted for Action (class) P is person cus
      --test
      --val
 ```
+# Manually preproces cache rgb for boost trainning read data 
+- if not run the code will auto generate the cache at the fisrt epoch but slower at first epoch
+```bash
+python helper_fn/generate_cache.py --root_folder=your/root/folder
+```
 # Training
 ```bash
 CUDA_VISIBLE_DEVICES=1,2,6 python /work/21013187/SAM-SLR-v2/phuoc_src/train.py

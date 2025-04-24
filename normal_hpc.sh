@@ -1,7 +1,7 @@
 #!/bin/bash
 #SBATCH --job-name=Image_captioning
-#SBATCH --partition=dgx-small
-#SBATCH --time=24:00:00
+#SBATCH --partition=gpu
+#SBATCH --time=12:00:00
 #SBATCH --account=ddt_acc23
 
 #SBATCH --ntasks-per-node=2
@@ -12,16 +12,16 @@
 #SBATCH --error=logs/%x_%j_%D.err
 
 source /home/21013187/anaconda3/etc/profile.d/conda.sh
-squeue --me
+# squeue --me
 cd /work/21013187/SAM-SLR-v2/
 module load python cuda
-conda deactivate
-conda deactivate
-conda deactivate
+# conda deactivate
+# conda deactivate
+# conda deactivate
 
-conda activate py311
+# conda activate py311
 
-python --version
+# python --version
 
-CUDA_VISIBLE_DEVICES=6,7  python /work/21013187/SAM-SLR-v2/phuoc_src/train.py 
-
+# CUDA_VISIBLE_DEVICES=6,7  python /work/21013187/SAM-SLR-v2/phuoc_src/train.py 
+python /work/21013187/SAM-SLR-v2/phuoc_src/helper_fn/generate_cache.py
