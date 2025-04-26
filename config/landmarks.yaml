@@ -7,7 +7,7 @@ train:
 
 dataset:
     dataset_root_path: /work/21013187/SAM-SLR-v2/data/rgb
-    batch_size: 3
+    batch_size: 15
 
 landmark:
   use: True
