@@ -15,7 +15,7 @@
 export MASTER_ADDR=$(scontrol show hostname ${SLURM_NODELIST} | head -n 1)
 source /home/21013187/anaconda3/etc/profile.d/conda.sh
 squeue --me
-cd /work/21013187/SAM-SLR-v2/
+cd /work/21013187/SAM-SLR-v2/phuoc_src
 module load python cuda
 conda deactivate
 conda deactivate

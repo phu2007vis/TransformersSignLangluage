@@ -1,7 +1,6 @@
 import torch.nn as nn
 import collections
 from transformers.models.videomae.modeling_videomae import get_sinusoid_encoding_table
-from slgcn.decouple_gcn_attn import SLGCN
 import torch
 
 class VideoMAEEmbeddings(nn.Module):
