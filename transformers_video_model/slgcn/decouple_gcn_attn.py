@@ -2,9 +2,9 @@ import torch
 import torch.nn as nn
 import numpy as np
 import math
-from dropSke import DropBlock_Ske
-from dropT import DropBlockT_1d
-from graph import Graph
+from slgcn.dropSke import DropBlock_Ske
+from slgcn.dropT import DropBlockT_1d
+from slgcn.graph import Graph
 
 def import_class(name):
     components = name.split('.')
@@ -220,7 +220,7 @@ class TCN_GCN_unit(nn.Module):
 
 
 class SLGCN(nn.Module):
-    def __init__(self,num_point=27, num_person=1, groups=8, block_size=41, in_channels=3):
+    def __init__(self,hidden_size ,num_point=27, num_person=1, groups=8, block_size=41, in_channels=3):
         super(SLGCN, self).__init__()
 
         self.graph = Graph('spatial')
@@ -241,14 +241,12 @@ class SLGCN(nn.Module):
                                num_point, block_size, stride=2)
         self.l9 = TCN_GCN_unit(256, 256, A, groups, num_point, block_size)
         self.l10 = TCN_GCN_unit(256, 256, A, groups, num_point, block_size)
-
+        self.projection = nn.Linear(256,hidden_size)
       
         bn_init(self.data_bn, 1)
 
     def forward(self, x, keep_prob=0.9):
-        if not self.training:
-            keep_prob = 1
-            
+       
         N, T, V,C = x.size()
         x = x.flatten(2).permute(0,2,1).view(N,  V * C, T)
         x = self.data_bn(x)
@@ -261,15 +259,15 @@ class SLGCN(nn.Module):
         x = self.l4(x, 1.0)
         x = self.l5(x, 1.0)
         x = self.l6(x, 1.0)
-        x = self.l7(x, keep_prob)
-        x = self.l8(x, keep_prob)
-        x = self.l9(x, keep_prob)
-        x = self.l10(x, keep_prob)
+        x = self.l7(x, 1.0)
+        x = self.l8(x, 1.0)
+        x = self.l9(x, 1.0)
+        x = self.l10(x, 1.0)
 
         N,C,T,V = x.size()
-        # N,C,T,V
+        # N,C,T,V -> N,T*V,C
         x = x.flatten(2).view(N,-1,C)
-        return x
+        return self.projection(x)
 if __name__ == "__main__":
     x = torch.randn(2,17,27,3)
     model = SLGCN()

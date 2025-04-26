@@ -1,4 +1,5 @@
 
+
 from pathlib import Path
 import os
 from typing import Any, Callable, cast, Dict, List, Optional, Tuple, Union, Type
@@ -26,11 +27,16 @@ def get_label_map(dataset_root_path,
 	print("Label 2 ID:\n",'\n'.join([f'{k}: {v}' for k, v in label2id.items()]))
 	return label2id,id2label
 
+
 def load_config(yaml_path):
     import yaml
     with open(yaml_path, 'r') as f:
         config = yaml.safe_load(f)
     return config
+
+
+selected_joints = torch.tensor([0,5,6,7,8,9,10, 91,95,96,99,100,103,104,107,108,111,112,116,117,120,121,124,125,128,129,132],
+                               dtype = torch.int32)
 
 class LabeledVideoPaths:
 
@@ -361,7 +367,8 @@ class LabeledVideoDataset(torch.utils.data.IterableDataset):
 			if not os.path.exists(landmark_path):
 				print(f"Body landmark is not exist: {landmark_path}")
 			landmark = torch.tensor(np.load(landmark_path)).float()
-
+			
+			landmark = torch.index_select(landmark, -2, selected_joints)
 			sample_dict = {
 				"video": video,
 				"video_index": video_index,

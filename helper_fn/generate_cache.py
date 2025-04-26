@@ -95,6 +95,8 @@ if __name__ == "__main__":
     exts = ['.avi', '.mp4']
 
     for directory_name in os.listdir(args.root_folder):
+        if directory_name =='test':
+            continue
         directory = os.path.join(args.root_folder, directory_name, 'rgb')
         for class_index in tqdm(all_class_index, total=args.max_num_classes):
             data_target_path = []

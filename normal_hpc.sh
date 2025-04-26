@@ -7,7 +7,7 @@
 
 #SBATCH --ntasks-per-node=2
 #SBATCH --nodes=1
-#SBATCH --cpus-per-task=1
+#SBATCH --cpus-per-task=3
 
 #SBATCH --output=logs/%x_%j_%D.out
 #SBATCH --error=logs/%x_%j_%D.err

@@ -10,15 +10,12 @@ from transformers_video_model.model import VideoMAEForVideoClassification
 from transformers import TrainingArguments, Trainer
 #dataloader 
 from dataset import get_dataset, collate_fn
-from dataset.utils import get_label_map,load_config
+from dataset.utils import load_config
 #metric funtion
 from helper_fn.metric import compute_metrics
 
-# def main(dataset_root_path= "/work/21013187/SAM-SLR-v2/data/rgb",
-#          model_ckpt = "MCG-NJU/videomae-base" 
-#          ,num_epochs: int = 5,
-#          batch_size: int = 20):
-def main(config_path = "/work/21013187/SAM-SLR-v2/phuoc_src/config/landmakrs_gcn.yaml" ):
+
+def main(config_path = "/work/21013187/SAM-SLR-v2/phuoc_src/config/landmarks.yaml" ):
     
     config = load_config(config_path)
     #dataset config
@@ -33,8 +30,9 @@ def main(config_path = "/work/21013187/SAM-SLR-v2/phuoc_src/config/landmakrs_gcn
    
     #prepare model
     pretrained_path = config['pretrained_path']
-    model = VideoMAEForVideoClassification.from_pretrained(pretrained_path)
- 
+    landmark_config = config['landmark']
+    model = VideoMAEForVideoClassification.from_pretrained(pretrained_path,landmark_config = landmark_config)
+    
     #get all dataset
     dataset_root_path = Path(dataset_root_path)
     train_dataset, val_dataset, test_dataset = get_dataset(dataset_root_path)
@@ -51,7 +49,7 @@ def main(config_path = "/work/21013187/SAM-SLR-v2/phuoc_src/config/landmakrs_gcn
         remove_unused_columns=False,
         eval_strategy="epoch",
         save_strategy="epoch",
-        learning_rate=learning_rate,
+        learning_rate=float(learning_rate),
         per_device_train_batch_size=batch_size,
         per_device_eval_batch_size=batch_size,
         warmup_ratio=0.1,
@@ -73,13 +71,13 @@ def main(config_path = "/work/21013187/SAM-SLR-v2/phuoc_src/config/landmakrs_gcn
         
     )
     
-    train_results = trainer.train()
-    trainer.evaluate(test_dataset)
-    
-    trainer.save_model()
+    trainer.train()
+
+    #evaluate after trainnign
     test_results = trainer.evaluate(test_dataset)
     trainer.log_metrics("test", test_results)
     trainer.save_metrics("test", test_results)
+    trainer.save_model()
     trainer.save_state()
 
 if __name__ == '__main__':

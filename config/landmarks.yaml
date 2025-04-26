@@ -11,7 +11,9 @@ dataset:
 
 landmark:
   use: True
-  mode: gcn
-  fusion: early # [early,lately] 
+  use_gcn: False
+  fusion: lately # [early,lately] 
+  num_keypoints: 81 # 27 keypoints * 3 x,y,z locations
+
 
    
