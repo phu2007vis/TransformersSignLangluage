@@ -2,16 +2,16 @@ pretrained_path: /work/21013187/SAM-SLR-v2/videomae-base-finetuned_with_landmark
 
 train:
   num_epochs: 5
-  learning_rate: 5e-6
+  learning_rate: 0.000005
   
 
 dataset:
     dataset_root_path: /work/21013187/SAM-SLR-v2/data/rgb
-    batch_size: 12
+    batch_size: 3
 
 landmark:
   use: True
-  use_gcn: False
+  use_gcn: True
   fusion: lately # [early,lately] 
   num_keypoints: 81 # 27 keypoints * 3 x,y,z locations
 

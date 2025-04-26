@@ -16,13 +16,13 @@ source /home/21013187/anaconda3/etc/profile.d/conda.sh
 # squeue --me
 cd /work/21013187/SAM-SLR-v2/
 module load python cuda
-# conda deactivate
-# conda deactivate
-# conda deactivate
+conda deactivate
+conda deactivate
+conda deactivate
 
-# conda activate py311
+conda activate py311
 
-# python --version
 
-# CUDA_VISIBLE_DEVICES=6,7  python /work/21013187/SAM-SLR-v2/phuoc_src/train.py 
-python /work/21013187/SAM-SLR-v2/phuoc_src/helper_fn/generate_cache.py
+
+CUDA_VISIBLE_DEVICES=6,7  python /work/21013187/SAM-SLR-v2/phuoc_src/train.py 
+# python /work/21013187/SAM-SLR-v2/phuoc_src/helper_fn/generate_cache.py

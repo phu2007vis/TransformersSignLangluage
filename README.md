@@ -1,16 +1,8 @@
 
 
-# Customeize read data path  :
-     - file dataset.__init__
-     - line 106
-     - function make_dataset
 
-# Customize how input read and transforms to fit mode input:
-     -- file dataset.utils
-     -- line 242
-     -- function __next__
 
-# Dataset format
+# Default Dataset format
 ANPM , N is Class, M is sample id , A denoted for Action (class) P is person customized for our case 
 ```
 --root
@@ -32,10 +24,19 @@ ANPM , N is Class, M is sample id , A denoted for Action (class) P is person cus
 ```bash
 python helper_fn/generate_cache.py --root_folder=your/root/folder
 ```
+# Customeize read data path  :
+     - file dataset.__init__
+     - function make_dataset
+
+# Customize how input read and transforms to fit mode input:
+     -- file dataset.utils   function __next__
+     -- file dataset.utils   function collate_fn
 # Training
 ```bash
 CUDA_VISIBLE_DEVICES=1,2,6 python /work/21013187/SAM-SLR-v2/phuoc_src/train.py
 ``` 
+# Change config batch size,data root
+- config/landmarks.yaml
 # Requirements 
 - Tranformers >= 4.5 (in my case)
 - Python 3.11 (my case)

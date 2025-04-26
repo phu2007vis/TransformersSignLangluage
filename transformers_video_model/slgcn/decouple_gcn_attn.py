@@ -7,31 +7,30 @@ from slgcn.dropT import DropBlockT_1d
 from slgcn.graph import Graph
 
 def import_class(name):
-    components = name.split('.')
-    mod = __import__(components[0])
-    for comp in components[1:]:
-        mod = getattr(mod, comp)
-    return mod
+	components = name.split('.')
+	mod = __import__(components[0])
+	for comp in components[1:]:
+		mod = getattr(mod, comp)
+	return mod
 
 
 def conv_branch_init(conv):
-    weight = conv.weight
-    n = weight.size(0)
-    k1 = weight.size(1)
-    k2 = weight.size(2)
-    nn.init.normal(weight, 0, math.sqrt(2. / (n * k1 * k2)))
-    nn.init.constant(conv.bias, 0)
+	weight = conv.weight
+	n = weight.size(0)
+	k1 = weight.size(1)
+	k2 = weight.size(2)
+	nn.init.normal(weight, 0, math.sqrt(2. / (n * k1 * k2)))
+	nn.init.constant_(conv.bias, 0)
 
 
 def conv_init(conv):
-    nn.init.kaiming_normal(conv.weight, mode='fan_out')
-    nn.init.constant(conv.bias, 0)
+	nn.init.kaiming_normal(conv.weight, mode='fan_out')
+	nn.init.constant_(conv.bias, 0)
 
 
 def bn_init(bn, scale):
-    nn.init.constant(bn.weight, scale)
-    nn.init.constant(bn.bias, 0)
-
+	nn.init.constant_(bn.weight, scale)
+	nn.init.constant_(bn.bias, 0)
 
 class unit_tcn(nn.Module):
     def __init__(self, in_channels, out_channels, kernel_size=9, stride=1, num_point=25, block_size=41):
@@ -101,19 +100,19 @@ class unit_gcn(nn.Module):
         bn_init(self.bn, 1e-6)
 
         self.Linear_weight = nn.Parameter(torch.zeros(
-            in_channels, out_channels * num_subset, requires_grad=True, ), requires_grad=True)
+            in_channels, out_channels * num_subset, requires_grad=True, device='cuda'), requires_grad=True)
         nn.init.normal_(self.Linear_weight, 0, math.sqrt(
             0.5 / (out_channels * num_subset)))
 
         self.Linear_bias = nn.Parameter(torch.zeros(
-            1, out_channels * num_subset, 1, 1, requires_grad=True,), requires_grad=True)
+            1, out_channels * num_subset, 1, 1, requires_grad=True, device='cuda'), requires_grad=True)
         nn.init.constant(self.Linear_bias, 1e-6)
 
         eye_array = []
         for i in range(out_channels):
             eye_array.append(torch.eye(num_point))
         self.eyes = nn.Parameter(torch.tensor(torch.stack(
-            eye_array), requires_grad=False), requires_grad=False)  # [c,25,25]
+            eye_array), requires_grad=False, device='cuda'), requires_grad=False)  # [c,25,25]
 
     def norm(self, A):
         b, c, h, w = A.size()
@@ -155,7 +154,7 @@ class TCN_GCN_unit(nn.Module):
         self.relu = nn.ReLU()
 
         self.A = nn.Parameter(torch.tensor(np.sum(np.reshape(A.astype(np.float32), [
-                              3, num_point, num_point]), axis=0), dtype=torch.float32, requires_grad=False), requires_grad=False)
+                              3, num_point, num_point]), axis=0), dtype=torch.float32, requires_grad=False, device='cuda'), requires_grad=False)
 
         if not residual:
             self.residual = lambda x: 0
@@ -218,57 +217,57 @@ class TCN_GCN_unit(nn.Module):
         return self.relu(y + x_skip)
 
 
-
 class SLGCN(nn.Module):
-    def __init__(self,hidden_size ,num_point=27, num_person=1, groups=8, block_size=41, in_channels=3):
-        super(SLGCN, self).__init__()
+	def __init__(self,hidden_size ,num_point=27, num_person=1, groups=8, block_size=41, in_channels=3):
+		super(SLGCN, self).__init__()
 
-        self.graph = Graph('spatial')
-      
-        A = self.graph.A
-        self.data_bn = nn.BatchNorm1d(num_person * in_channels * num_point)
+		self.graph = Graph('spatial')
+	  
+		A = self.graph.A
+		self.data_bn = nn.BatchNorm1d(num_person * in_channels * num_point)
 
-        self.l1 = TCN_GCN_unit(in_channels, 64, A, groups, num_point,
-                               block_size, residual=False)
-        self.l2 = TCN_GCN_unit(64, 64, A, groups, num_point, block_size)
-        self.l3 = TCN_GCN_unit(64, 64, A, groups, num_point, block_size)
-        self.l4 = TCN_GCN_unit(64, 64, A, groups, num_point, block_size)
-        self.l5 = TCN_GCN_unit(
-            64, 128, A, groups, num_point, block_size, stride=2)
-        self.l6 = TCN_GCN_unit(128, 128, A, groups, num_point, block_size)
-        self.l7 = TCN_GCN_unit(128, 128, A, groups, num_point, block_size)
-        self.l8 = TCN_GCN_unit(128, 256, A, groups,
-                               num_point, block_size, stride=2)
-        self.l9 = TCN_GCN_unit(256, 256, A, groups, num_point, block_size)
-        self.l10 = TCN_GCN_unit(256, 256, A, groups, num_point, block_size)
-        self.projection = nn.Linear(256,hidden_size)
-      
-        bn_init(self.data_bn, 1)
+		self.l1 = TCN_GCN_unit(in_channels, 64, A, groups, num_point,block_size)
+		self.l2 = TCN_GCN_unit(64, 64, A, groups, num_point, block_size)
+		self.l3 = TCN_GCN_unit(64, 64, A, groups, num_point, block_size)
+		self.l4 = TCN_GCN_unit(64, 64, A, groups, num_point, block_size)
+		self.l5 = TCN_GCN_unit(64, 128, A, groups, num_point, block_size, stride=2)
+		self.l6 = TCN_GCN_unit(128, 128, A, groups, num_point, block_size)
+		self.l7 = TCN_GCN_unit(128, 128, A, groups, num_point, block_size)
+		self.l8 = TCN_GCN_unit(128, 256, A, groups,num_point, block_size, stride=2)
+		self.l9 = TCN_GCN_unit(256, 256, A, groups, num_point, block_size)
+		self.l10 = TCN_GCN_unit(256, 256, A, groups, num_point, block_size)
+		self.projection = nn.Linear(256,hidden_size)
+	  
+		bn_init(self.data_bn, 1)
 
-    def forward(self, x, keep_prob=0.9):
-       
-        N, T, V,C = x.size()
-        x = x.flatten(2).permute(0,2,1).view(N,  V * C, T)
-        x = self.data_bn(x)
-        x = x.view(N, 1, V, C, T).permute(
-            0, 1, 3, 4, 2).contiguous().view(N , C, T, V)
+	def forward(self, x):
+	   
+		N, T, V,C = x.size()
+		
+		x = x.flatten(2).permute(0,2,1).contiguous().view(N,  V * C, T)
+		
+		x = self.data_bn(x)
+		x = x.view(N, 1, V, C, T).permute(0, 1, 3, 4, 2).contiguous().view(N , C, T, V)
+		x = self.l1(x, 1.0)
+		x = self.l2(x, 1.0)
+		x = self.l3(x, 1.0)
+		
+		x = self.l4(x, 1.0)
+		x = self.l5(x, 1.0)
+		x = self.l6(x, 1.0)
+		x = self.l7(x, 1.0)
+		x = self.l8(x, 1.0)
+		x = self.l9(x, 1.0)
+		
+		x = self.l10(x, 1.0)
 
-        x = self.l1(x, 1.0)
-        x = self.l2(x, 1.0)
-        x = self.l3(x, 1.0)
-        x = self.l4(x, 1.0)
-        x = self.l5(x, 1.0)
-        x = self.l6(x, 1.0)
-        x = self.l7(x, 1.0)
-        x = self.l8(x, 1.0)
-        x = self.l9(x, 1.0)
-        x = self.l10(x, 1.0)
-
-        N,C,T,V = x.size()
-        # N,C,T,V -> N,T*V,C
-        x = x.flatten(2).view(N,-1,C)
-        return self.projection(x)
+		N,C,T,V = x.size()
+		# N,C,T,V -> N,T*V,C
+		
+		x = x.flatten(2).transpose(1, 2)
+	   
+		return self.projection(x)
 if __name__ == "__main__":
-    x = torch.randn(2,17,27,3)
-    model = SLGCN()
-    print(model(x).shape)
+	x = torch.randn(2,17,27,3)
+	model = SLGCN()
+	print(model(x).shape)

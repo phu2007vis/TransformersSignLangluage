@@ -1,3 +1,4 @@
 *pycache*/
 logs/*
 *.sh
+transformers_video_model/SkeletonActionClassification/

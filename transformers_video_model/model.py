@@ -25,7 +25,7 @@ from catalog import VideoMAEConfig,VideoMAEPreTrainedModel
 #model layer
 from layers import VideoMAELayer
 from patch_embedding import VideoMAEEmbeddings
-from transformers_video_model.slgcn.decouple_gcn_attn import SLGCN
+from transformers_video_model.stgcpp.stgcn import STGCN
 #log info
 logger = logging.get_logger(__name__)
 
@@ -261,7 +261,7 @@ class VideoMAEForVideoClassification(VideoMAEPreTrainedModel):
 		self.landmark_config = landmark_config
 		if self.landmark_config['use'] :
 			if  self.landmark_config['use_gcn']:
-				self.landmark_proj = SLGCN(hidden_size = config.hidden_size)
+				self.landmark_proj = STGCN(hidden_size = config.hidden_size)
 				assert(self.landmark_config['fusion'] in ['early','lately'])
 			else:
 				self.no_gcn_proj = nn.Linear(self.landmark_config['num_keypoints'],config.hidden_size)
@@ -318,7 +318,6 @@ class VideoMAEForVideoClassification(VideoMAEPreTrainedModel):
 
 		sequence_output = outputs[0]
 		
-
 		if self.fc_norm is not None:
 			sequence_output = self.fc_norm(sequence_output.mean(1))
 		else:
