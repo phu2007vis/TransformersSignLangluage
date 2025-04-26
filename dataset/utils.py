@@ -26,6 +26,11 @@ def get_label_map(dataset_root_path,
 	print("Label 2 ID:\n",'\n'.join([f'{k}: {v}' for k, v in label2id.items()]))
 	return label2id,id2label
 
+def load_config(yaml_path):
+    import yaml
+    with open(yaml_path, 'r') as f:
+        config = yaml.safe_load(f)
+    return config
 
 class LabeledVideoPaths:
 

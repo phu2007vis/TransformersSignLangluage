@@ -29,7 +29,5 @@ torchrun --nproc_per_node=2 \
  --rdzv_id=100 \
  --rdzv_backend=c10d \
  --rdzv_endpoint=$MASTER_ADDR:29400 \
- /work/21013187/SAM-SLR-v2/phuoc_src/train.py \
- --batch_size=12 \
- --num_epochs=5
+ /work/21013187/SAM-SLR-v2/phuoc_src/train.py 
 

@@ -1,8 +1,9 @@
 #!/bin/bash
 #SBATCH --job-name=Image_captioning
-#SBATCH --partition=gpu
-#SBATCH --time=12:00:00
+#SBATCH --partition=normal
+#SBATCH --time=6:00:00
 #SBATCH --account=ddt_acc23
+#SBATCH --mem=64G  
 
 #SBATCH --ntasks-per-node=2
 #SBATCH --nodes=1
