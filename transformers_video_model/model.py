@@ -25,7 +25,8 @@ from catalog import VideoMAEConfig,VideoMAEPreTrainedModel
 #model layer
 from layers import VideoMAELayer
 from patch_embedding import VideoMAEEmbeddings
-from transformers_video_model.stgcpp.stgcn import STGCN
+from transformers_video_model.LTTransformers import LanmarkEncoder
+# from transformers_video_model.stgcpp.stgcn import STGCN
 #log info
 logger = logging.get_logger(__name__)
 
@@ -260,18 +261,18 @@ class VideoMAEForVideoClassification(VideoMAEPreTrainedModel):
 		#landmark config
 		self.landmark_config = landmark_config
 		if self.landmark_config['use'] :
-			if  self.landmark_config['use_gcn']:
-				self.landmark_proj = STGCN(hidden_size = config.hidden_size)
+			if  self.landmark_config['use_landmark_transformers']:
+				self.landmark_proj = LanmarkEncoder(config.hidden_size,self.landmark_config)
 				assert(self.landmark_config['fusion'] in ['early','lately'])
 			else:
 				self.no_gcn_proj = nn.Linear(self.landmark_config['num_keypoints'],config.hidden_size)
-				self.landmark_proj = self.not_gcn
+				self.landmark_proj = self.not_landmark_transtrans
 	
 		# Initialize weights and apply final processing
 		self.post_init()
-  
+		
 	
-	def not_gcn(self,x):
+	def not_landmark_transtrans(self,x):
 		# B,T,num_join,3 -> B,T,num_keypoints
 		x = x.flatten(2)
 		return self.no_gcn_proj(x)

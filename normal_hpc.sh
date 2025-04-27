@@ -24,5 +24,5 @@ conda activate py311
 
 
 
-CUDA_VISIBLE_DEVICES=6,7  python /work/21013187/SAM-SLR-v2/phuoc_src/train.py 
+CUDA_VISIBLE_DEVICES=7 python /work/21013187/SAM-SLR-v2/phuoc_src/train.py 
 # python /work/21013187/SAM-SLR-v2/phuoc_src/helper_fn/generate_cache.py

@@ -78,8 +78,7 @@ class VideoMAEPatchEmbeddings(nn.Module):
 		)
 		
   
-	def overide_landmark_config(self,landmark_config):
-		self.landmark_config = landmark_config
+
    
 	def forward(self, pixel_values,landmarks):
 		batch_size, num_frames, num_channels, height, width = pixel_values.shape

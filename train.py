@@ -32,7 +32,7 @@ def main(config_path = "/work/21013187/SAM-SLR-v2/phuoc_src/config/landmarks.yam
     pretrained_path = config['pretrained_path']
     landmark_config = config['landmark']
     model = VideoMAEForVideoClassification.from_pretrained(pretrained_path,landmark_config = landmark_config)
-    
+ 
     #get all dataset
     dataset_root_path = Path(dataset_root_path)
     train_dataset, val_dataset, test_dataset = get_dataset(dataset_root_path)
@@ -59,6 +59,7 @@ def main(config_path = "/work/21013187/SAM-SLR-v2/phuoc_src/config/landmarks.yam
         push_to_hub=False,
         max_steps=(train_dataset.num_videos // batch_size) * num_epochs,
         report_to="none",
+        fp16 = False
     )
     
     trainer = Trainer(

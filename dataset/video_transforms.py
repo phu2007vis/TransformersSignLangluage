@@ -151,6 +151,7 @@ class UniformTemporalSubsample(torch.nn.Module):
 			# C,T,H,W (image) temporal is 1 , T,N,C (landmark) is 0
 			if len(value.shape) == 3:
 				cur_temporal_dim = temporal_dim - 1
+				
 			else:
 				cur_temporal_dim  = temporal_dim
 			assert isinstance(value, torch.Tensor), f"Key: {key} is not a Tensor, got {type(value)}"

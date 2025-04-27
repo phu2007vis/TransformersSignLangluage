@@ -56,7 +56,7 @@ def get_dataset(dataset_root_path,
             UniformTemporalSubsample(num_frames),
             # apply just only key focus
             #remove unuse key
-            RemoveKey(['video_index','clip_index','aug_index','video_name']),
+            # RemoveKey(['video_index','clip_index','aug_index','video_name']),
             ApplyTransformToKey(
                 key = 'video',
                 transform=Compose(
@@ -75,9 +75,9 @@ def get_dataset(dataset_root_path,
                 transform=Compose(
                     [
                         LandmarkNormalize(mean=(0, 0, 0), std=(1, 1, 1)),  
-                        LandmarkUniformTemporalSubsample(num_frames),  
-                        LandmarkRandomCrop(output_size=img_size, original_size=(256, 256)),  
-                        LandmarkRandomHorizontalFlip(p=0.5),  
+                        # LandmarkUniformTemporalSubsample(num_frames),  
+                        # LandmarkRandomCrop(output_size=img_size, original_size=(256, 256)),  
+                        # LandmarkRandomHorizontalFlip(p=0.5),  
                     ]
                 ),
             ),
