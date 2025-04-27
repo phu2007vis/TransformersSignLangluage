@@ -1,7 +1,7 @@
 
 
 # TODO
-- Upload retrained weights
+- Upload pretrained weights
 - Fuse depth info
 - Upload some samples of the dataset
 - If you found this repository helpful, please consider starring.
