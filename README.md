@@ -1,9 +1,13 @@
 
 
-
+# TODO
+- Upload retrained weights
+- Fuse depth info
+- Upload some samples of the dataset
+- If you found this repository helpful, please consider starring.
 
 # Default Dataset format
-ANPM , N is Class, M is sample id , A denoted for Action (class) P is person customized for our case 
+ANPM, N is Class, M is sample id, A denotes Action (class), P is person customized for our case 
 ```
 --root
      --train
@@ -19,16 +23,16 @@ ANPM , N is Class, M is sample id , A denoted for Action (class) P is person cus
      --test
      --val
 ```
-# Manually preproces cache rgb for boost trainning read data 
-- if not run the code will auto generate the cache at the fisrt epoch but slower at first epoch
+# Manually pre-process the cache RGB for boost training read data 
+- If not run, the code will auto generate the cache at the first epoch, but slower atthe  first epoch
 ```bash
 python helper_fn/generate_cache.py --root_folder=your/root/folder
 ```
-# Customeize read data path  :
+# Customize read data path  :
      - file dataset.__init__
      - function make_dataset
 
-# Customize how input read and transforms to fit mode input:
+# Customize how input is read and transformed to fit the mode input:
      -- file dataset.utils   function __next__
      -- file dataset.utils   function collate_fn
 # Training
