@@ -32,7 +32,8 @@ def get_dataset(dataset_root_path,
                 img_size = (224, 224),
                 mean = [0.5,0.5,0.5],
                 std = [0.5,0.5,0.5],
-                num_frames = 16):
+                num_frames = 16,
+                config = None):
 
     video_count_train = len(list(dataset_root_path.glob("train/rgb/*.avi")))
     video_count_val = len(list(dataset_root_path.glob("val/rgb/*.avi")))
@@ -51,12 +52,13 @@ def get_dataset(dataset_root_path,
     # Training dataset transformations.
     train_transform = Compose(
         [
-            # apply all the key
+           
+            #remove unuse key
             RemoveKey(['video_index','clip_index','aug_index','video_name']),
+             # apply all the key
             UniformTemporalSubsample(num_frames),
             # apply just only key focus
-            #remove unuse key
-            # RemoveKey(['video_index','clip_index','aug_index','video_name']),
+         
             ApplyTransformToKey(
                 key = 'video',
                 transform=Compose(
@@ -90,6 +92,7 @@ def get_dataset(dataset_root_path,
         clip_sampler=pytorchvideo.data.make_clip_sampler("random", clip_duration),
         decode_audio=False,
         transform=train_transform,
+        config = config
     )
 
     # Validation and evaluation datasets' transformations.
@@ -113,8 +116,8 @@ def get_dataset(dataset_root_path,
                 transform=Compose(
                     [
                         LandmarkNormalize(mean=(0, 0, 0), std=(1, 1, 1)),
-                        LandmarkUniformTemporalSubsample(num_frames),
-                        LandmarkResize(size=img_size, original_size=(256, 256)),
+                       # LandmarkUniformTemporalSubsample(num_frames),
+                        # LandmarkResize(size=img_size, original_size=(256, 256)),
                     ]
                 ),
             ),
@@ -127,6 +130,7 @@ def get_dataset(dataset_root_path,
         clip_sampler=pytorchvideo.data.make_clip_sampler("uniform", clip_duration),
         decode_audio=False,
         transform=val_transform,
+        config =config
     )
 
     test_dataset = labeled_video_dataset(
@@ -134,6 +138,7 @@ def get_dataset(dataset_root_path,
         clip_sampler=pytorchvideo.data.make_clip_sampler("uniform", clip_duration),
         decode_audio=False,
         transform=val_transform,
+        config =config
     )
     
     return train_dataset,val_dataset,test_dataset
@@ -144,11 +149,20 @@ def get_dataset(dataset_root_path,
 def collate_fn(examples):
     """The collation function to be used by `Trainer` to prepare data batches."""
     # permute to (num_frames, num_channels, height, width)
-    pixel_values = torch.stack(
-        [example["video"].permute(1, 0, 2, 3) for example in examples]
-    )
-    landmarks = torch.stack(
-        [example["landmark"] for example in examples]
-    )
+    pixel_values =[example["video"].permute(1, 0, 2, 3) for example in examples ]
+    pixel_values =  torch.stack(pixel_values) 
+    
     labels = torch.tensor([example["label"] for example in examples],dtype=torch.long)
-    return {"pixel_values": pixel_values, "labels": labels,"landmarks":landmarks}
+    batch_dict =  {"pixel_values": pixel_values, "labels": labels}
+    
+    landmarks = [example["landmark"] for example in examples if example.get('landmark') is not None]
+    landmarks = torch.stack(landmarks) if len(landmarks) else None
+    if landmarks is not None:
+        batch_dict['landmarks'] = landmarks
+        
+    depths = [example["depth"] for example in examples if example.get('depth') is not None]
+    depths = torch.stack(depths) if len(depths) else None
+    if depths is not None:
+        batch_dict['depths'] = depths
+        
+    return batch_dict

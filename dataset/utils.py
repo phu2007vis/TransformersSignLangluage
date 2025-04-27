@@ -13,7 +13,7 @@ import numpy as np
 
 
 def get_label_map(dataset_root_path,
-                  dataset_type: str = 'rgb') -> Tuple[Dict[str, int], Dict[int, str]]:
+				  dataset_type: str = 'rgb') -> Tuple[Dict[str, int], Dict[int, str]]:
 	if not isinstance(dataset_root_path,Path):
 		dataset_root_path = Path(dataset_root_path)
 
@@ -29,14 +29,14 @@ def get_label_map(dataset_root_path,
 
 
 def load_config(yaml_path):
-    import yaml
-    with open(yaml_path, 'r') as f:
-        config = yaml.safe_load(f)
-    return config
+	import yaml
+	with open(yaml_path, 'r') as f:
+		config = yaml.safe_load(f)
+	return config
 
 
 selected_joints = torch.tensor([0,5,6,7,8,9,10, 91,95,96,99,100,103,104,107,108,111,112,116,117,120,121,124,125,128,129,132],
-                               dtype = torch.int32)
+							   dtype = torch.int32)
 
 class LabeledVideoPaths:
 
@@ -179,38 +179,38 @@ import numpy as np
 import torch
 
 def video_loader(video_path):
-    vidcap = cv2.VideoCapture(str(video_path))
-    frame_count = int(vidcap.get(cv2.CAP_PROP_FRAME_COUNT))
-    width = int(vidcap.get(cv2.CAP_PROP_FRAME_WIDTH))
-    height = int(vidcap.get(cv2.CAP_PROP_FRAME_HEIGHT))
-    
-    # Assuming 3 channels (RGB)
-    frames = np.empty((frame_count, height, width, 3), dtype=np.uint8)
+	vidcap = cv2.VideoCapture(str(video_path))
+	frame_count = int(vidcap.get(cv2.CAP_PROP_FRAME_COUNT))
+	width = int(vidcap.get(cv2.CAP_PROP_FRAME_WIDTH))
+	height = int(vidcap.get(cv2.CAP_PROP_FRAME_HEIGHT))
+	
+	# Assuming 3 channels (RGB)
+	frames = np.empty((frame_count, height, width, 3), dtype=np.uint8)
 
-    idx = 0
-    success, image = vidcap.read()
-    while success and idx < frame_count:
-        frames[idx] = image
-        success, image = vidcap.read()
-        idx += 1
+	idx = 0
+	success, image = vidcap.read()
+	while success and idx < frame_count:
+		frames[idx] = image
+		success, image = vidcap.read()
+		idx += 1
 
-    vidcap.release()
+	vidcap.release()
 
-    # Truncate if read fewer frames than expected
-    frames = frames[:idx]
-    # Convert to tensor: C,T,H,W
-    return torch.from_numpy(frames).permute(3, 0, 1, 2).float()
+	# Truncate if read fewer frames than expected
+	frames = frames[:idx]
+	# Convert to tensor: C,T,H,W
+	return torch.from_numpy(frames).permute(3, 0, 1, 2).float()
 
 def save_video_as_npy(video_tensor, video_path):
-    # Convert tensor from C,T,H,W to T,H,W,C and back to uint8
-    video_array = video_tensor.permute(1, 2, 3, 0).to(torch.uint8).numpy()
-    # Save as .npy file
-    np.save(video_path, video_array)
+	# Convert tensor from C,T,H,W to T,H,W,C and back to uint8
+	video_array = video_tensor.permute(1, 2, 3, 0).to(torch.uint8).numpy()
+	# Save as .npy file
+	np.save(video_path, video_array)
 
 def load_video_from_npy(video_path):
-    # Load .npy file and convert back to tensor with C,T,H,W format
-    video_array = np.load(video_path)
-    return torch.from_numpy(video_array).permute(3, 0, 1, 2).float()
+	# Load .npy file and convert back to tensor with C,T,H,W format
+	video_array = np.load(video_path)
+	return torch.from_numpy(video_array).permute(3, 0, 1, 2).float()
 
 
 
@@ -236,6 +236,7 @@ class LabeledVideoDataset(torch.utils.data.IterableDataset):
 		transform: Optional[Callable[[dict], Any]] = None,
 		decode_audio: bool = True,
 		decoder: str = "pyav",
+		config =None,
 		**kwargs
 	) -> None:
 		"""
@@ -265,7 +266,7 @@ class LabeledVideoDataset(torch.utils.data.IterableDataset):
 		self._transform = transform
 		self._clip_sampler = clip_sampler
 		self._labeled_videos = labeled_video_paths
-		
+		self.config  = config
 		self._preprocess_path()
 		
 		self._decoder = decoder
@@ -292,15 +293,26 @@ class LabeledVideoDataset(torch.utils.data.IterableDataset):
 		self.video_path_handler = VideoPathHandler()
 
 	def _preprocess_path(self):
-		self.__labeled_videos_landmarks = []
+		self.__labeled_input_paths = []
 		for video_path,label in self._labeled_videos:
 			folder_root,img_name = os.path.split(video_path)
+			img_id = os.path.splitext(img_name)[0]
 			root_dir = os.path.dirname(folder_root)
-			landmark_path = os.path.join(root_dir,'npy',img_name+".npy")
-			self.__labeled_videos_landmarks.append(((landmark_path,video_path),label))
 
-			
-		assert(len(self.__labeled_videos_landmarks) == len(self.__labeled_videos_landmarks))
+			input_path ={
+				'video_path':video_path,
+				
+			}
+			if self.config['landmark']['use']:
+				input_path['landmark_path'] = os.path.join(root_dir,'npy',img_name+".npy") 
+    
+			if self.config['depth']['use']:
+				input_path['depth_path'] =  os.path.join(root_dir,'depth',img_id+'.npy')
+
+   
+			self.__labeled_input_paths.append((input_path,label))
+   
+		assert(len(self.__labeled_input_paths) == len(self.__labeled_input_paths))
 
 	@property
 	def video_sampler(self):
@@ -348,8 +360,10 @@ class LabeledVideoDataset(torch.utils.data.IterableDataset):
 			
 			video_index = next(self._video_sampler_iter)
 			
-			(landmark_path,video_path), info_dict = self.__labeled_videos_landmarks[video_index]
+			input_path, info_dict = self.__labeled_input_paths[video_index]
+			video_path = input_path['video_path']
 			cache_dir = os.path.join(os.path.dirname(os.path.dirname(video_path)),"cache")
+			#cache load
 			id = os.path.splitext(os.path.basename(video_path))[0]
 			base_cache_name = id+".npy"
 			cache_video_path = os.path.join(cache_dir,base_cache_name)
@@ -363,19 +377,27 @@ class LabeledVideoDataset(torch.utils.data.IterableDataset):
 				save_video_as_npy(video,cache_video_path)
 				
 
-
-			if not os.path.exists(landmark_path):
-				print(f"Body landmark is not exist: {landmark_path}")
-			landmark = torch.tensor(np.load(landmark_path)).float()
-			
-			landmark = torch.index_select(landmark, -2, selected_joints)
 			sample_dict = {
-				"video": video,
 				"video_index": video_index,
-				'landmark': landmark,
+				"video": video,
 				**info_dict,
 			}
-   
+			if self.config['landmark']['use']:
+				landmark_path = input_path['landmark_path']
+				if not os.path.exists(landmark_path):
+					print(f"Body landmark is not exist: {landmark_path}")
+				landmark = torch.tensor(np.load(landmark_path)).float()
+				landmark = torch.index_select(landmark, -2, selected_joints)
+				sample_dict['landmark'] = landmark
+			
+			if self.config['depth']['use']:
+				depth_path = input_path['depth_path']
+				if not os.path.exists(depth_path):
+					print(f"Depth is not exist: {depth_path} skip!")
+					continue
+				depth = torch.tensor(np.load(depth_path)).float()
+				sample_dict['depth'] = depth
+    
 			if self._transform is not None:
 				sample_dict = self._transform(sample_dict)
 				# User can force dataset to continue by returning None in transform.

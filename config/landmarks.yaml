@@ -10,7 +10,7 @@ dataset:
     batch_size: 3
 
 landmark:
-  use: True
+  use: False
   use_landmark_transformers: True
   fusion: early # [early,lately] 
   num_keypoints: 81 # 27 keypoints * 3 x,y,z locations
@@ -18,5 +18,8 @@ landmark:
   num_layers: 4
   max_len: 128
   dropout: 0.1
+
+depth:
+  use: True
 
    

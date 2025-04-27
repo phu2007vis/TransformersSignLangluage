@@ -35,7 +35,7 @@ def main(config_path = "/work/21013187/SAM-SLR-v2/phuoc_src/config/landmarks.yam
  
     #get all dataset
     dataset_root_path = Path(dataset_root_path)
-    train_dataset, val_dataset, test_dataset = get_dataset(dataset_root_path)
+    train_dataset, val_dataset, test_dataset = get_dataset(dataset_root_path,config = config)
     
     #save dir
     model_name = pretrained_path.split("/")[-1]

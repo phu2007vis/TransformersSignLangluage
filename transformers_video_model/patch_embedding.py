@@ -97,8 +97,6 @@ class VideoMAEPatchEmbeddings(nn.Module):
 		if landmarks is not None :
 			embeddings = torch.cat([embeddings,landmarks],dim = 1)
    
-		# else:
-		# 	landmarks = self.landmark_proj(landmarks.flatten(-2))
-		# 	embeddings = torch.cat([embeddings,landmarks],dim = 1)
+	
    
 		return embeddings

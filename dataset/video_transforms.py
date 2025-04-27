@@ -58,7 +58,9 @@ class ApplyTransformToKey:
 		self._transform = transform
 
 	def __call__(self, x: Dict[str, torch.Tensor]) -> Dict[str, torch.Tensor]:
-		
+     
+		if x.get(self._key) is None:
+			return x
 		x[self._key] = self._transform(x[self._key])
 		return x
 
