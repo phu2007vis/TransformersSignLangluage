@@ -255,6 +255,37 @@ class Normalize(torch.nn.Module):
 			
 		return landmarks
 
+class Unnormalize(torch.nn.Module):
+	"""
+	Unnormalize the landmark data by multiplying by std and adding the mean
+
+	Args:
+		mean (tuple): coordinates mean values (defaults to (0, 0, 0))
+		std (tuple): coordinates standard deviation values (defaults to (1, 1, 1))
+		inplace (boolean): whether do in-place unnormalization
+	"""
+
+	def __init__(self, mean=(0, 0, 0), std=(1, 1, 1), inplace=False):
+		super().__init__()
+		self.mean = torch.tensor(mean)
+		self.std = torch.tensor(std)
+		self.inplace = inplace
+
+	def forward(self, landmarks: torch.Tensor) -> torch.Tensor:
+		"""
+		Args:
+			landmarks (torch.Tensor): Normalized landmarks tensor with shape (T, N, C) where T is frames,
+								    N is number of keypoints, C is coordinates (x,y,z)
+		"""
+		if not self.inplace:
+			landmarks = landmarks.clone()
+
+		# Apply unnormalization to coordinates (last dimension)
+		for i in range(len(self.mean)):
+			landmarks[..., i] = landmarks[..., i] * self.std[i] + self.mean[i]
+
+		return landmarks
+
 
 class ConvertFloatToUint8(torch.nn.Module):
 	"""

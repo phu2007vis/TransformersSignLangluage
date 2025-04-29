@@ -3,40 +3,47 @@
 from typing import Callable, Dict, List, Optional, Tuple
 import pytorchvideo.transforms.functional
 import torch
-import torchvision.transforms
-from torchvision.utils import _log_api_usage_once
-from torchvision.transforms import functional as F
+import torchvision.transforms as transforms
+import torchvision
+import random 
+from torchvision.transforms import functional as TF
+
 
 
 class RandomHorizontalFlip(torch.nn.Module):
-	"""Horizontally flip the given image randomly with a given probability.
-	If the image is torch Tensor, it is expected
-	to have [..., H, W] shape, where ... means an arbitrary number of leading
-	dimensions
-
-	Args:
-		p (float): probability of the image being flipped. Default value is 0.5
+	"""
+	``nn.Module`` wrapper for ``pytorchvideo.transforms.functional.uniform_temporal_subsample``.
 	"""
 
-	def __init__(self, p=0.5):
+	def __init__(self,
+				p = 1,
+				temporal_dim: int = 1,
+				skip_key = ['label']):
+		
 		super().__init__()
-		_log_api_usage_once(self)
 		self.p = p
-
-	def forward(self, img):
-		"""
-		Args:
-			img (PIL Image or Tensor): Image to be flipped.
-
-		Returns:
-			PIL Image or Tensor: Randomly flipped image.
-		"""
-		if torch.rand(1) < self.p:
-			return F.hflip(img)
-		return img
-
-	def __repr__(self) -> str:
-		return f"{self.__class__.__name__}(p={self.p})"
+		self._temporal_dim = temporal_dim
+		self.skip_key = skip_key
+		
+	def forward(self,datadict ) :
+		
+		if random.random() > self.p:
+			return datadict
+		
+		for key,value in datadict.items():    
+			if key in self.skip_key:
+				continue
+			elif key == 'video':
+				datadict[key] = TF.hflip(value)
+			elif key == 'landmark':
+				pass
+			elif key =='depth':
+				pass
+			else:
+				
+				raise("Not implemment yet!")
+		
+		return datadict
 
 class ApplyTransformToKey:
 	"""
@@ -56,9 +63,10 @@ class ApplyTransformToKey:
 	def __init__(self, key: str, transform: Callable):
 		self._key = key
 		self._transform = transform
+		assert self._key in ['video','landmark']
 
 	def __call__(self, x: Dict[str, torch.Tensor]) -> Dict[str, torch.Tensor]:
-     
+	 
 		if x.get(self._key) is None:
 			return x
 		x[self._key] = self._transform(x[self._key])
@@ -138,7 +146,7 @@ class UniformTemporalSubsample(torch.nn.Module):
 				cur_temporal_dim = temporal_dim - 1
 			else:
 				cur_temporal_dim  = temporal_dim
-    
+	
 			t = value.shape[temporal_dim]
 			break
 		assert num_samples > 0 and t > 0
@@ -279,6 +287,37 @@ class Normalize(torchvision.transforms.Normalize):
 		vid = vid.permute(1, 0, 2, 3)  # T C H W to C T H W
 		return vid
 
+class VisUnnormalize(transforms.Normalize):
+    """
+    Unnormalize a (C, T, H, W) video tensor using mean and std.
+
+    Args:
+        mean (3-tuple): RGB mean
+        std (3-tuple): RGB std
+        inplace (bool): Whether to perform the operation in-place
+    """
+    def __init__(self,
+                mean = [0.5,0.5,0.5],
+                std = [0.5,0.5,0.5],
+                inplace=False):
+        super().__init__(mean=mean, std=std, inplace=inplace)
+
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        """
+        Args:
+            x (torch.Tensor): Normalized video tensor of shape (C, T, H, W).
+        Returns:
+            Unnormalized video tensor of same shape.
+        """
+        
+        vid = x.permute(1, 0, 2, 3)  # (C, T, H, W) → (T, C, H, W)
+        # Unnormalize: x * std + mean → override normalize with inverse
+        for t in range(vid.shape[0]):
+            for c in range(vid.shape[1]):
+                vid[t, c] = vid[t, c] * self.std[c] + self.mean[c]
+        vid = vid.permute(1, 0, 2, 3)  # (T, C, H, W) → (C, T, H, W)
+        vid = vid *255
+        return vid
 
 class ConvertFloatToUint8(torch.nn.Module):
 	"""

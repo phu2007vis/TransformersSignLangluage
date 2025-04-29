@@ -6,7 +6,7 @@ from dataset.video_transforms import (
     Normalize as VideoNormalize,
     RandomShortSideScale,
     UniformTemporalSubsample,
-    RandomHorizontalFlip as VideoRandomHorizontalFlip,
+    RandomHorizontalFlip,
     RemoveKey
 )
 
@@ -58,16 +58,14 @@ def get_dataset(dataset_root_path,
              # apply all the key
             UniformTemporalSubsample(num_frames),
             # apply just only key focus
-         
+            RandomHorizontalFlip(),
             ApplyTransformToKey(
                 key = 'video',
                 transform=Compose(
                     [
                         Lambda(lambda x: x / 255.0),
                         VideoNormalize(mean, std),
-                        RandomShortSideScale(min_size=256, max_size=320),
-                        RandomCrop(img_size),
-                        VideoRandomHorizontalFlip(p=0.5),
+                        Resize(img_size),
                     ]
                 ),
             ),
@@ -77,9 +75,6 @@ def get_dataset(dataset_root_path,
                 transform=Compose(
                     [
                         LandmarkNormalize(mean=(0, 0, 0), std=(1, 1, 1)),  
-                        # LandmarkUniformTemporalSubsample(num_frames),  
-                        # LandmarkRandomCrop(output_size=img_size, original_size=(256, 256)),  
-                        # LandmarkRandomHorizontalFlip(p=0.5),  
                     ]
                 ),
             ),
@@ -116,8 +111,6 @@ def get_dataset(dataset_root_path,
                 transform=Compose(
                     [
                         LandmarkNormalize(mean=(0, 0, 0), std=(1, 1, 1)),
-                       # LandmarkUniformTemporalSubsample(num_frames),
-                        # LandmarkResize(size=img_size, original_size=(256, 256)),
                     ]
                 ),
             ),
