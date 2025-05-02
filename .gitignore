@@ -5,3 +5,5 @@ transformers_video_model/SkeletonActionClassification/
 my_model/*
 checkpoint-4886-finetuned/
 weights/*
+visualize/
+checkpoint*/

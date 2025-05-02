@@ -149,6 +149,7 @@ class UniformTemporalSubsample(torch.nn.Module):
 	
 			t = value.shape[temporal_dim]
 			break
+		
 		assert num_samples > 0 and t > 0
 		# Sample by nearest neighbor interpolation if num_samples > t.
 		

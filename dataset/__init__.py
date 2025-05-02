@@ -24,7 +24,7 @@ from torchvision.transforms import (
     RandomCrop,
     Resize,
 )
-
+from torchvision import transforms
 import pytorchvideo
 from dataset.utils import labeled_video_dataset
 
@@ -58,11 +58,12 @@ def get_dataset(dataset_root_path,
              # apply all the key
             UniformTemporalSubsample(num_frames),
             # apply just only key focus
-            RandomHorizontalFlip(),
+            # RandomHorizontalFlip(),
             ApplyTransformToKey(
                 key = 'video',
                 transform=Compose(
                     [
+                        transforms.RandomHorizontalFlip(p =0),
                         Lambda(lambda x: x / 255.0),
                         VideoNormalize(mean, std),
                         Resize(img_size),

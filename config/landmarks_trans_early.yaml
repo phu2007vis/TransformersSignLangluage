@@ -6,13 +6,13 @@ train:
   
 
 dataset:
-    dataset_root_path: /work/21013187/SAM-SLR-v2/data1
+    dataset_root_path: /work/21013187/SAM-SLR-v2/data/rgb
     batch_size: 3
 
 landmark:
-  use: True
+  use: False
   use_landmark_transformers: True
-  fusion: lately # [early,lately] 
+  fusion: early # [early,lately] 
   num_keypoints: 81 # 27 keypoints * 3 x,y,z locations
   num_heads: 8 
   num_layers: 4

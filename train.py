@@ -15,7 +15,8 @@ from dataset.utils import load_config
 from helper_fn.metric import compute_metrics
 
 
-def main(config_path = "/work/21013187/SAM-SLR-v2/phuoc_src/config/landmarks.yaml" ):
+def main(config_path = "/work/21013187/SAM-SLR-v2/phuoc_src/config/landmarks.yaml",
+         save_name = 'train'):
     
     config = load_config(config_path)
     #dataset config
@@ -36,30 +37,29 @@ def main(config_path = "/work/21013187/SAM-SLR-v2/phuoc_src/config/landmarks.yam
     #get all dataset
     dataset_root_path = Path(dataset_root_path)
     train_dataset, val_dataset, test_dataset = get_dataset(dataset_root_path,config = config)
-    
-    #save dir
-    model_name = pretrained_path.split("/")[-1]
-    new_model_name = f"{model_name}-finetuned"
-    
+  
+    print(config)
     print(f"Batch size: {batch_size}") 
     print(f"Epochs : {num_epochs}")
     
     args = TrainingArguments(
-        new_model_name,
+        save_name,
         remove_unused_columns=False,
-        eval_strategy="epoch",
-        save_strategy="epoch",
+        eval_strategy="steps",
+        save_strategy="steps",
         learning_rate=learning_rate,
         per_device_train_batch_size=batch_size,
         per_device_eval_batch_size=batch_size,
         warmup_ratio=0.1,
-        logging_steps=8,
+        logging_steps=100,
         load_best_model_at_end=True,
         metric_for_best_model="accuracy",
         push_to_hub=False,
         max_steps=(train_dataset.num_videos // batch_size) * num_epochs,
         report_to="none",
-        fp16 = False
+        fp16 = False,
+        eval_steps =  2000,
+        save_steps=2000
     )
     
     trainer = Trainer(

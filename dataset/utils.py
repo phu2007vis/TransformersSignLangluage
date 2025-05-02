@@ -45,7 +45,7 @@ class LabeledVideoPaths:
 	def from_directory(cls, dir_path: str) :
 	
 		video_paths_and_label = make_dataset(
-			dir_path, class_to_idx = None, extensions=("mp4", "avi")
+			dir_path, class_to_idx = None, extensions=("mp4", "avi",'npy')
 		)
 		assert (
 			len(video_paths_and_label) > 0
@@ -123,7 +123,7 @@ def find_number_classes(directory: Union[str, Path]) -> Tuple[List[str], Dict[st
 def make_dataset(
 	directory: Union[str, Path],
 	class_to_idx: Optional[Dict[str, int]] = None,
-	extensions: Optional[Union[str, Tuple[str, ...]]] = ('.avi', '.mp4'),
+	extensions: Optional[Union[str, Tuple[str, ...]]] = ('.avi', '.mp4','.npy'),
 	is_valid_file: Optional[Callable[[str], bool]] = None,
 	allow_empty: bool = False,
 ) -> List[Tuple[str, int]]:
@@ -304,7 +304,7 @@ class LabeledVideoDataset(torch.utils.data.IterableDataset):
 				
 			}
 			if self.config['landmark']['use']:
-				input_path['landmark_path'] = os.path.join(root_dir,'npy',img_name+".npy") 
+				input_path['landmark_path'] = os.path.join(root_dir,'landmark',img_id+".npy") 
     
 			if self.config['depth']['use']:
 				input_path['depth_path'] =  os.path.join(root_dir,'depth',img_id+'.npy')
@@ -367,8 +367,9 @@ class LabeledVideoDataset(torch.utils.data.IterableDataset):
 			id = os.path.splitext(os.path.basename(video_path))[0]
 			base_cache_name = id+".npy"
 			cache_video_path = os.path.join(cache_dir,base_cache_name)
-			
-			if os.path.exists(cache_video_path):
+			if video_path.endswith('npy'):
+				video = load_video_from_npy(video_path)
+			elif os.path.exists(cache_video_path):
 				video = load_video_from_npy(cache_video_path)
 			else:
 				

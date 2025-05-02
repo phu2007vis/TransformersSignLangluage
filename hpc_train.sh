@@ -1,7 +1,7 @@
 #!/bin/bash
-#SBATCH --job-name=Image_captioning
+#SBATCH --job-name=trans_lately
 #SBATCH --partition=dgx-small
-#SBATCH --time=24:00:00
+#SBATCH --time=48:00:00
 #SBATCH --account=ddt_acc23
 
 #SBATCH --ntasks-per-node=2
@@ -22,12 +22,13 @@ conda deactivate
 conda deactivate
 
 conda activate py311
-export CUDA_VISIBLE_DEVICES=1,2
+export CUDA_VISIBLE_DEVICES=3,4
 python --version
 
 torchrun --nproc_per_node=2 \
  --rdzv_id=100 \
  --rdzv_backend=c10d \
- --rdzv_endpoint=$MASTER_ADDR:29400 \
- /work/21013187/SAM-SLR-v2/phuoc_src/train.py 
+ --rdzv_endpoint=$MASTER_ADDR:29401 \
+ /work/21013187/SAM-SLR-v2/phuoc_src/train.py --config_path=/work/21013187/SAM-SLR-v2/phuoc_src/config/landmarks.yaml \
+ --save_name='trans_lately'
 
