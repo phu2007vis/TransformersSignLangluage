@@ -6,9 +6,9 @@ from dataset.video_transforms import (
     Normalize as VideoNormalize,
     RandomShortSideScale,
     UniformTemporalSubsample,
-    RandomHorizontalFlip,
     RemoveKey
 )
+from dataset.depth_transforms import DepthResize
 
 from dataset.landmark_transforms import (
     Normalize as LandmarkNormalize,
@@ -79,6 +79,16 @@ def get_dataset(dataset_root_path,
                     ]
                 ),
             ),
+            ApplyTransformToKey(
+                key = 'depth',
+                transform=Compose(
+                    [   
+                        DepthResize(),
+                        Lambda(lambda x: (x-x.min())/(x.max()-x.min())),
+                      
+                    ]
+                ),
+            ),
         ]
     )
     
@@ -112,6 +122,16 @@ def get_dataset(dataset_root_path,
                 transform=Compose(
                     [
                         LandmarkNormalize(mean=(0, 0, 0), std=(1, 1, 1)),
+                    ]
+                ),
+            ),
+             ApplyTransformToKey(
+                key = 'depth',
+                transform=Compose(
+                    [   
+                        DepthResize(),
+                        Lambda(lambda x: (x-x.min())/(x.max()-x.min())),
+                      
                     ]
                 ),
             ),

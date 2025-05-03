@@ -396,7 +396,7 @@ class LabeledVideoDataset(torch.utils.data.IterableDataset):
 				if not os.path.exists(depth_path):
 					print(f"Depth is not exist: {depth_path} skip!")
 					continue
-				depth = torch.tensor(np.load(depth_path)).float()
+				depth = torch.tensor(np.load(depth_path)).float().unsqueeze(0)
 				sample_dict['depth'] = depth
     
 			if self._transform is not None:

@@ -63,7 +63,7 @@ class ApplyTransformToKey:
 	def __init__(self, key: str, transform: Callable):
 		self._key = key
 		self._transform = transform
-		assert self._key in ['video','landmark']
+		assert self._key in ['video','landmark','depth']
 
 	def __call__(self, x: Dict[str, torch.Tensor]) -> Dict[str, torch.Tensor]:
 	 

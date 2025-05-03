@@ -43,7 +43,44 @@ def render_landmarks_to_image(landmarks, size=(224, 224)):
     img = Image.open(buf).convert('RGB').resize(size)
     return np.array(img)
 
-def save_landmarks_and_rgb_to_video(landmarks, rgb_array, filename, fps=30):
+def reder_depth(depth_tensor, colormap=cv2.COLORMAP_JET):
+    """
+    Converts depth tensor to a colored video using a colormap for better visualization.
+    Args:
+        depth_tensor: torch.Tensor of shape (B, H, W)
+        save_path: Output path (e.g., .mp4)
+        fps: Frames per second
+        colormap: OpenCV colormap (default: JET)
+    """
+
+
+    depth_tensor = depth_tensor.cpu().squeeze()
+    B, H, W = depth_tensor.shape
+
+    depth_np = depth_tensor.numpy()
+
+    # Global min/max excluding zeros (invalid)
+    valid_mask = depth_np > 0
+    min_val = depth_np[valid_mask].min() if valid_mask.any() else 0
+    max_val = depth_np.max()
+
+    all_frames = []
+    for i in range(B):
+        frame = depth_np[i]
+
+        # Normalize this frame (avoid invalid pixels)
+        valid = frame > 0
+        norm_frame = np.zeros_like(frame, dtype=np.float32)
+        norm_frame[valid] = (frame[valid] - min_val) / (max_val - min_val + 1e-6)
+        norm_frame = (norm_frame * 255).astype(np.uint8)
+
+        # Apply colormap
+        color_frame = cv2.applyColorMap(norm_frame, colormap)
+        all_frames.append(color_frame)
+    return all_frames
+  
+
+def save_landmarks_and_rgb_to_video(landmarks, rgb_array,depth, filename, fps=30):
     """
     landmarks_torch: torch.Tensor of shape (T, 27, 3)
     rgb_array: np.ndarray of shape (224, 224, 3, T)
@@ -56,52 +93,23 @@ def save_landmarks_and_rgb_to_video(landmarks, rgb_array, filename, fps=30):
     if rgb_array.dtype != np.uint8:
         rgb_array = (rgb_array ).clip(0, 255).astype(np.uint8)
 
-    width, height = 224 * 2, 224
+    width, height = 224 * 3, 224
     fourcc = cv2.VideoWriter_fourcc(*'mp4v')
     out = cv2.VideoWriter(filename, fourcc, fps, (width, height))
-
+    all_depth_frames = reder_depth(depth)
     for t in range(T):
         rgb_frame = rgb_array[t]
         landmarks_frame = landmarks[t].numpy()
         vis_img = render_landmarks_to_image(landmarks_frame)
-
+        depth_img = all_depth_frames[t]
         # Combine side-by-side
-        combined = np.concatenate([vis_img, rgb_frame], axis=1)  # (H, 2W, 3)
+        combined = np.concatenate([vis_img, rgb_frame,depth_img], axis=1)  # (H, 2W, 3)
         # combined_bgr = cv2.cvtColor(combined, cv2.COLOR_RGB2BGR)
         out.write(combined)
 
     out.release()
     print(f"Saved video to {filename}")
-    
-def save_numpy_as_mp4(array, filename, fps=30):
-    """
-    Save a NumPy array of shape (224, 224, 3, T) as an MP4 video.
 
-    Parameters:
-        array (np.ndarray): NumPy array with shape (224, 224, 3, T)
-        filename (str): Output filename, e.g. 'output.mp4'
-        fps (int): Frames per second
-    """
-  
-    T = array.shape[0]
-    height, width = 224, 224
-
-    # Convert from float to uint8 if necessary
-    if array.dtype != np.uint8:
-        array = (array ).clip(0, 255).astype(np.uint8)
-
-    # Define the codec and create VideoWriter object
-    fourcc = cv2.VideoWriter_fourcc(*'mp4v')
-    out = cv2.VideoWriter(filename, fourcc, fps, (width, height))
-
-    for t in range(T):
-        frame = array[t, :, :, :]
-       
-        frame = cv2.cvtColor(frame, cv2.COLOR_RGB2BGR)  # Convert RGB to BGR for OpenCV
-        out.write(frame)
-
-    out.release()
-    print(f"Saved video to {filename}")
 
 
 def main(config_path = "/work/21013187/SAM-SLR-v2/phuoc_src/config/landmarks.yaml",
@@ -115,7 +123,7 @@ def main(config_path = "/work/21013187/SAM-SLR-v2/phuoc_src/config/landmarks.yam
     
     #prepare model
     landmark_config = config['landmark']
-    
+    config['depth']['use'] = True
 
     landmark_config['use'] = True
     config['landmark'] = landmark_config
@@ -138,7 +146,9 @@ def main(config_path = "/work/21013187/SAM-SLR-v2/phuoc_src/config/landmarks.yam
         landmark = datadict['landmark']
         landmark = landmark_unnormalize(landmark)
         
-        save_landmarks_and_rgb_to_video(landmark,video,save_path)
+        depth = datadict['depth']
+
+        save_landmarks_and_rgb_to_video(landmark,video,depth ,save_path)
             
             
             
