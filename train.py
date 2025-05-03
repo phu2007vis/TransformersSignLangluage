@@ -32,7 +32,7 @@ def main(config_path = "/work/21013187/SAM-SLR-v2/phuoc_src/config/landmarks.yam
     #prepare model
     pretrained_path = config['pretrained_path']
     landmark_config = config['landmark']
-    model = VideoMAEForVideoClassification.from_pretrained(pretrained_path,landmark_config = landmark_config)
+    model = VideoMAEForVideoClassification.from_pretrained(pretrained_path,landmark_config = landmark_config,ignore_mismatched_sizes=True)
  
     #get all dataset
     dataset_root_path = Path(dataset_root_path)

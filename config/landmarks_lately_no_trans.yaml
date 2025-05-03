@@ -1,7 +1,7 @@
-pretrained_path: /work/21013187/SAM-SLR-v2/phuoc_src/trans_lately/checkpoint-30000
+pretrained_path: /work/21013187/SAM-SLR-v2/phuoc_src/weights/checkpoint-4886-finetuned/checkpoint-1677
 
 train:
-  num_epochs: 9
+  num_epochs: 10
   learning_rate: 0.000005
   
 
@@ -11,8 +11,8 @@ dataset:
 
 landmark:
   use: True
-  use_landmark_transformers: True
-  fusion: early # [early,lately] 
+  use_landmark_transformers: False
+  fusion: lately # [early,lately] 
   num_keypoints: 81 # 27 keypoints * 3 x,y,z locations
   num_heads: 8 
   num_layers: 4

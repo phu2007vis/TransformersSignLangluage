@@ -1,4 +1,4 @@
-import fire
+
 from pathlib import Path
 
 #add parrent dir to easy import
@@ -15,8 +15,13 @@ from pathlib import Path
 from helper_fn.metric import compute_metrics
 from dataset.utils import load_config
 
-def main(config_path = "/work/21013187/SAM-SLR-v2/phuoc_src/config/landmarks.yaml" ):
-    
+def main( ):
+    #trans_lately
+    # config_path = "/work/21013187/SAM-SLR-v2/phuoc_src/config/landmarks.yaml"
+    # pretrained_path ="/work/21013187/SAM-SLR-v2/phuoc_src/trans_lately/checkpoint-30000"
+    #rgb only
+    pretrained_path = "/work/21013187/SAM-SLR-v2/phuoc_src/rgb_only/checkpoint-30000"
+    config_path = "/work/21013187/SAM-SLR-v2/phuoc_src/config/rgb_only.yaml"
     config = load_config(config_path)
     #dataset config
     dataset_config  = config['dataset']
@@ -29,15 +34,13 @@ def main(config_path = "/work/21013187/SAM-SLR-v2/phuoc_src/config/landmarks.yam
     learning_rate = train_config['learning_rate']
    
     #prepare model
-    pretrained_path ="/work/21013187/SAM-SLR-v2/phuoc_src/trans_lately/checkpoint-2000"
+    
     landmark_config = config['landmark']
     model = VideoMAEForVideoClassification.from_pretrained(pretrained_path,landmark_config = landmark_config)
     
     #get all dataset
     train_dataset, val_dataset, test_dataset = get_dataset(dataset_root_path,config = config)
   
-    print(f"Batch size: {batch_size}") 
-    print(f"Epochs : {num_epochs}")
     args = TrainingArguments(
         "testing",
         remove_unused_columns=False,
@@ -67,9 +70,9 @@ def main(config_path = "/work/21013187/SAM-SLR-v2/phuoc_src/config/landmarks.yam
    
 
     test_results = trainer.evaluate(test_dataset)
-    trainer.log_metrics("test", test_results)
-    trainer.save_metrics("test", test_results)
+    trainer.log_metrics("rgb", test_results)
+    trainer.save_metrics("rgb", test_results)
 
 
 if __name__ == '__main__':
-    fire.Fire(main)
+    main()

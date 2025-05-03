@@ -7,3 +7,5 @@ checkpoint-4886-finetuned/
 weights/*
 visualize/
 checkpoint*/
+testing/*
+*.safetensors
